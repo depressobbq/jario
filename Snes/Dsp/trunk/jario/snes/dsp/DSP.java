@@ -15,7 +15,6 @@ public class DSP extends DSPCore implements Clockable, Bus8bit
 		{
 			voice[i] = new Voice(brr_buf_size);
 		}
-
 		power();
 	}
 
@@ -84,7 +83,6 @@ public class DSP extends DSPCore implements Clockable, Bus8bit
 		op = 0;
 
 		state.regs[GlobalReg_flg] = 0xe0;
-
 		state.noise = 0x4000;
 		state.echo_hist_pos = 0;
 		state.every_other_sample = true;

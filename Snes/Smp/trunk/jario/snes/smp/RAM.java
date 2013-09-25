@@ -8,19 +8,21 @@ import java.util.Arrays;
 public class RAM implements Hardware, Bus8bit
 {
 	private byte[] ram;
-	
+
 	public RAM()
 	{
 		ram = new byte[64 * 1024];
 	}
-	
+
 	@Override
-	public void connect(int port, Hardware hw) { }
+	public void connect(int port, Hardware hw)
+	{
+	}
 
 	@Override
 	public void reset()
 	{
-		Arrays.fill(ram, (byte)0);
+		Arrays.fill(ram, (byte) 0);
 	}
 
 	@Override

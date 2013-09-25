@@ -16,117 +16,129 @@ public class Video implements Hardware, Clockable, Bus32bit, Configurable
 {
 	private int FRAMES_PER_SECOND = 60;
 	private int SKIP_TICKS = 1000 / FRAMES_PER_SECOND;
-	
+
 	private BusDMA output;
 	private Bus8bit display_bus;
 	private BusDMA ppu_bus;
 	private Bus32bit counter_bus;
 	private Bus32bit audio;
-	
+
 	private ExecutorService executor;
 	private long currentTime;
 	private long next_game_tick;
 	private long sleep_time;
-    private boolean limit = true;
-	
-    class AudioVideoThread implements Runnable
-    {
-    	private int width, height;
+	private boolean limit = true;
 
-        public AudioVideoThread(int width, int height)
-        {
-        	this.width = width;
-        	this.height = height;
-        }
+	class AudioVideoThread implements Runnable
+	{
+		private int width, height;
 
-        public void run()
-        {
-            output.writeDMA(0, data_output, 1024 * 2, ((width & 0xFFFF) << 16) | (height & 0xFFFF));
-        }
-    }
-    
-    private boolean frame_hires;
-    private boolean frame_interlace;
-    private int[] line_width = new int[240];
-    ByteBuffer data_output = ByteBuffer.allocate(1024 * 1024 * 2);
-	
+		public AudioVideoThread(int width, int height)
+		{
+			this.width = width;
+			this.height = height;
+		}
+
+		public void run()
+		{
+			output.writeDMA(0, data_output, 1024 * 2, ((width & 0xFFFF) << 16) | (height & 0xFFFF));
+		}
+	}
+
+	private boolean frame_hires;
+	private boolean frame_interlace;
+	private int[] line_width = new int[240];
+	ByteBuffer data_output = ByteBuffer.allocate(1024 * 1024 * 2);
+
 	public Video()
 	{
 		executor = Executors.newSingleThreadExecutor();
 		frame_hires = false;
-        frame_interlace = false;
-        for (int i = 0; i < 240; i++)
-        {
-            line_width[i] = 256;
-        }
-        next_game_tick = System.currentTimeMillis();
+		frame_interlace = false;
+		for (int i = 0; i < 240; i++)
+		{
+			line_width[i] = 256;
+		}
+		next_game_tick = System.currentTimeMillis();
 	}
-	
+
 	@Override
-    public void connect(int port, Hardware hw)
+	public void connect(int port, Hardware hw)
 	{
 		switch (port)
 		{
-			case 0: output = (BusDMA)hw; break;
-			case 1: display_bus = (Bus8bit)hw; break;
-			case 2: ppu_bus = (BusDMA)hw; break;
-			case 3: counter_bus = (Bus32bit)hw; break;
-			case 4: audio = (Bus32bit)hw; break;
+		case 0:
+			output = (BusDMA) hw;
+			break;
+		case 1:
+			display_bus = (Bus8bit) hw;
+			break;
+		case 2:
+			ppu_bus = (BusDMA) hw;
+			break;
+		case 3:
+			counter_bus = (Bus32bit) hw;
+			break;
+		case 4:
+			audio = (Bus32bit) hw;
+			break;
 		}
 	}
-    
-    @Override
-    public void reset() { }
 
-    @Override
-    public void clock(long clocks)
-    {
-    	ppu_bus.readDMA(0, data_output, 0, 512 * 478 * 2);
-    	
-    	ShortBuffer data = data_output.asShortBuffer();
-    	int data_offset = 0;
+	@Override
+	public void reset()
+	{
+	}
 
-    	if (display_bus.read8bit(0) != 0 && counter_bus.read32bit(2) != 0)
-        {
-            data_offset += 512;
-        }
-        int width = 256;
-        int height = display_bus.read8bit(1) == 0 ? 224 : 239;
+	@Override
+	public void clock(long clocks)
+	{
+		ppu_bus.readDMA(0, data_output, 0, 512 * 478 * 2);
 
-        if (frame_hires)
-        {
-            width <<= 1;
-            //normalize line widths
-            for (int y = 0; y < 240; y++)
-            {
-                if (line_width[y] == 512)
-                {
-                    continue;
-                }
-                ShortBuffer buffer = data;
-                int buffer_offset = data_offset + (y * 1024);
-                for (int x = 255; x >= 0; x--)
-                {
-                	short s = buffer.get(buffer_offset + x);
-                    buffer.put(buffer_offset + ((x * 2) + 1), s);
-                    buffer.put(buffer_offset + ((x * 2) + 0), s);
-                }
-            }
-        }
+		ShortBuffer data = data_output.asShortBuffer();
+		int data_offset = 0;
 
-        if (frame_interlace)
-        {
-            height <<= 1;
-        }
+		if (display_bus.read8bit(0) != 0 && counter_bus.read32bit(2) != 0)
+		{
+			data_offset += 512;
+		}
+		int width = 256;
+		int height = display_bus.read8bit(1) == 0 ? 224 : 239;
 
-        executor.execute(new AudioVideoThread(width, height));
-        audio.read32bit(0); // play audio for this frame
+		if (frame_hires)
+		{
+			width <<= 1;
+			// normalize line widths
+			for (int y = 0; y < 240; y++)
+			{
+				if (line_width[y] == 512)
+				{
+					continue;
+				}
+				ShortBuffer buffer = data;
+				int buffer_offset = data_offset + (y * 1024);
+				for (int x = 255; x >= 0; x--)
+				{
+					short s = buffer.get(buffer_offset + x);
+					buffer.put(buffer_offset + ((x * 2) + 1), s);
+					buffer.put(buffer_offset + ((x * 2) + 0), s);
+				}
+			}
+		}
 
-        frame_hires = false;
-        frame_interlace = false;
-        
-        currentTime = System.currentTimeMillis();
-		
+		if (frame_interlace)
+		{
+			height <<= 1;
+		}
+
+		executor.execute(new AudioVideoThread(width, height));
+		audio.read32bit(0); // play audio for this frame
+
+		frame_hires = false;
+		frame_interlace = false;
+
+		currentTime = System.currentTimeMillis();
+
 		if (limit)
 		{
 			next_game_tick += SKIP_TICKS;
@@ -144,11 +156,11 @@ public class Video implements Hardware, Clockable, Bus32bit, Configurable
 			}
 		}
 		next_game_tick = System.currentTimeMillis();
-    }
-    
-    @Override
+	}
+
+	@Override
 	public int read32bit(int address)
-    {
+	{
 		return 0;
 	}
 
@@ -156,15 +168,12 @@ public class Video implements Hardware, Clockable, Bus32bit, Configurable
 	public void write32bit(int address, int data)
 	{   // scanline
 		int y = data;
-        if (y >= 240)
-        {
-            return;
-        }
+		if (y >= 240) { return; }
 
-        frame_hires |= (display_bus.read8bit(2) != 0);
-        frame_interlace |= (display_bus.read8bit(0) != 0);
-        int width = (display_bus.read8bit(2) == 0 ? 256 : 512);
-        line_width[y] = width;
+		frame_hires |= (display_bus.read8bit(2) != 0);
+		frame_interlace |= (display_bus.read8bit(0) != 0);
+		int width = (display_bus.read8bit(2) == 0 ? 256 : 512);
+		line_width[y] = width;
 	}
 
 	@Override
@@ -179,7 +188,7 @@ public class Video implements Hardware, Clockable, Bus32bit, Configurable
 	{
 		if (key.equals("fps"))
 		{
-			FRAMES_PER_SECOND = (Integer)value;
+			FRAMES_PER_SECOND = (Integer) value;
 			SKIP_TICKS = 1000 / FRAMES_PER_SECOND;
 		}
 	}
