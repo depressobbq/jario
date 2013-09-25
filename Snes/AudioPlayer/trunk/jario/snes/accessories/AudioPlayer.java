@@ -14,50 +14,58 @@ import javax.sound.sampled.SourceDataLine;
 public class AudioPlayer implements Hardware, BusDMA, Configurable
 {
 	private AudioFormat audioFormat;
-    private SourceDataLine audioDataLine;
-    
-    private boolean enable = true;
-    private float sampleRate;
-	
+	private SourceDataLine audioDataLine;
+
+	private boolean enable = true;
+	private float sampleRate;
+
 	public AudioPlayer()
 	{
 		sampleRate = 33334; // 62.5 fps
 		initAudio(sampleRate);
 	}
-	
-	@Override
-	public void connect(int port, Hardware hw) { }
-	
-	@Override
-	public void reset() { }
 
 	@Override
-	public void readDMA(int address, ByteBuffer b, int offset, int length) { }
+	public void connect(int port, Hardware hw)
+	{
+	}
+
+	@Override
+	public void reset()
+	{
+	}
+
+	@Override
+	public void readDMA(int address, ByteBuffer b, int offset, int length)
+	{
+	}
 
 	@Override
 	public void writeDMA(int address, ByteBuffer buffer, int offset, int length)
 	{
 		if (enable && audioDataLine == null)
 		{
-            initAudio(sampleRate);
+			initAudio(sampleRate);
 		}
-        if (!enable && audioDataLine != null)
-        {
-            closeAudio();
-        }
-        if (audioDataLine != null)
-        {
-        	audioDataLine.write(buffer.array(), offset, length);
-        }
+		if (!enable && audioDataLine != null)
+		{
+			closeAudio();
+		}
+		if (audioDataLine != null)
+		{
+			audioDataLine.write(buffer.array(), offset, length);
+		}
 	}
-	
+
 	@Override
 	public Object readConfig(String key)
 	{
 		switch (key)
 		{
-			case "enable": return enable;
-			default: return null;
+		case "enable":
+			return enable;
+		default:
+			return null;
 		}
 	}
 
@@ -66,40 +74,43 @@ public class AudioPlayer implements Hardware, BusDMA, Configurable
 	{
 		switch (key)
 		{
-			case "enable": enable = (boolean)value; break;
-			case "samplerate":
-				sampleRate = (Integer)value;
-				initAudio(sampleRate);
-				break;
+		case "enable":
+			enable = (boolean) value;
+			break;
+		case "samplerate":
+			sampleRate = (Integer) value;
+			initAudio(sampleRate);
+			break;
 		}
 	}
-	
+
 	private boolean initAudio(float sampleRate)
 	{
-        closeAudio(); // Release just in case...
-        audioFormat = new AudioFormat(sampleRate, 16, 2, true, true);
-        SourceDataLine.Info info = new DataLine.Info(SourceDataLine.class, audioFormat);
-        try
-        {
-            audioDataLine = (SourceDataLine) AudioSystem.getLine(info);
-            audioDataLine.open(audioFormat);
-            audioDataLine.start();
-        }
-        catch (Exception e)
-        {
-            e.printStackTrace();
-            return false;
-        }
-        return true;
-    }
+		closeAudio(); // Release just in case...
+		audioFormat = new AudioFormat(sampleRate, 16, 2, true, true);
+		SourceDataLine.Info info = new DataLine.Info(SourceDataLine.class, audioFormat);
+		try
+		{
+			audioDataLine = (SourceDataLine) AudioSystem.getLine(info);
+			audioDataLine.open(audioFormat);
+			audioDataLine.start();
+		}
+		catch (Exception e)
+		{
+			e.printStackTrace();
+			return false;
+		}
+		return true;
+	}
 
-    private void closeAudio()
-    {
-        if (audioDataLine != null) {
-        	audioDataLine.flush();
-            audioDataLine.stop();
-            audioDataLine.close();
-            audioDataLine = null;
-        }
-    }
+	private void closeAudio()
+	{
+		if (audioDataLine != null)
+		{
+			audioDataLine.flush();
+			audioDataLine.stop();
+			audioDataLine.close();
+			audioDataLine = null;
+		}
+	}
 }

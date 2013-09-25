@@ -8,13 +8,9 @@ public class SPCDSP
 
 	private static final int Clamp16(int io)
 	{
-		if ((short)io != io)
-		{
-			return (io >> 31) ^ 0x7FFF;
-		}
+		if ((short) io != io) { return (io >> 31) ^ 0x7FFF; }
 		return io;
 	}
-
 
 	// Initializes DSP and has it use the 64K RAM provided
 	public void init(Bus8bit ram_64k)
@@ -70,7 +66,7 @@ public class SPCDSP
 	public byte read(int addr)
 	{
 		assert addr < register_count;
-		return (byte)m.regs[addr];
+		return (byte) m.regs[addr];
 	}
 
 	public void write(int addr, byte data)
@@ -80,22 +76,24 @@ public class SPCDSP
 		m.regs[addr] = data & 0xFF;
 		switch (addr & 0x0F)
 		{
-			case VoiceReg_envx:
-				m.envx_buf = data & 0xFF;
-				break;
-			case VoiceReg_outx:
-				m.outx_buf = data & 0xFF;
-				break;
-			case 0x0C:
-				if (addr == GlobalReg_kon)
-					m.new_kon = data & 0xFF;
-
-				if (addr == GlobalReg_endx) // always cleared, regardless of data written
-				{
-					m.endx_buf = 0;
-					m.regs[GlobalReg_endx] = 0;
-				}
-				break;
+		case VoiceReg_envx:
+			m.envx_buf = data & 0xFF;
+			break;
+		case VoiceReg_outx:
+			m.outx_buf = data & 0xFF;
+			break;
+		case 0x0C:
+			if (addr == GlobalReg_kon)
+			{
+				m.new_kon = data & 0xFF;
+			}
+			if (addr == GlobalReg_endx)
+			{
+				// always cleared, regardless of data written
+				m.endx_buf = 0;
+				m.regs[GlobalReg_endx] = 0;
+			}
+			break;
 		}
 	}
 
@@ -116,162 +114,162 @@ public class SPCDSP
 		{
 			switch (phase)
 			{
-				case 0:
-					voice_V5(m.voices[0]);
-					voice_V2(m.voices[1]);
-					if (Phase(1, clocks_remain))
-						break;
-				case 1:
-					voice_V6(m.voices[0]);
-					voice_V3(m.voices[1]);
-					if (Phase(2, clocks_remain))
-						break;
-				case 2:
-					voice_V7_V4_V1(m.voices, 0);
-					if (Phase(3, clocks_remain))
-						break;
-				case 3:
-					voice_V8_V5_V2(m.voices, 0);
-					if (Phase(4, clocks_remain))
-						break;
-				case 4:
-					voice_V9_V6_V3(m.voices, 0);
-					if (Phase(5, clocks_remain))
-						break;
-				case 5:
-					voice_V7_V4_V1(m.voices, 1);
-					if (Phase(6, clocks_remain))
-						break;
-				case 6:
-					voice_V8_V5_V2(m.voices, 1);
-					if (Phase(7, clocks_remain))
-						break;
-				case 7:
-					voice_V9_V6_V3(m.voices, 1);
-					if (Phase(8, clocks_remain))
-						break;
-				case 8:
-					voice_V7_V4_V1(m.voices, 2);
-					if (Phase(9, clocks_remain))
-						break;
-				case 9:
-					voice_V8_V5_V2(m.voices, 2);
-					if (Phase(10, clocks_remain))
-						break;
-				case 10:
-					voice_V9_V6_V3(m.voices, 2);
-					if (Phase(11, clocks_remain))
-						break;
-				case 11:
-					voice_V7_V4_V1(m.voices, 3);
-					if (Phase(12, clocks_remain))
-						break;
-				case 12:
-					voice_V8_V5_V2(m.voices, 3);
-					if (Phase(13, clocks_remain))
-						break;
-				case 13:
-					voice_V9_V6_V3(m.voices, 3);
-					if (Phase(14, clocks_remain))
-						break;
-				case 14:
-					voice_V7_V4_V1(m.voices, 4);
-					if (Phase(15, clocks_remain))
-						break;
-				case 15:
-					voice_V8_V5_V2(m.voices, 4);
-					if (Phase(16, clocks_remain))
-						break;
-				case 16:
-					voice_V9_V6_V3(m.voices, 4);
-					if (Phase(17, clocks_remain))
-						break;
-				case 17:
-					voice_V1(m.voices[0]);
-					voice_V7(m.voices[5]);
-					voice_V4(m.voices[6]);
-					if (Phase(18, clocks_remain))
-						break;
-				case 18:
-					voice_V8_V5_V2(m.voices, 5);
-					if (Phase(19, clocks_remain))
-						break;
-				case 19:
-					voice_V9_V6_V3(m.voices, 5);
-					if (Phase(20, clocks_remain))
-						break;
-				case 20:
-					voice_V1(m.voices[1]);
-					voice_V7(m.voices[6]);
-					voice_V4(m.voices[7]);
-					if (Phase(21, clocks_remain))
-						break;
-				case 21:
-					voice_V8(m.voices[6]);
-					voice_V5(m.voices[7]);
-					voice_V2(m.voices[0]);
-					if (Phase(22, clocks_remain))
-						break;
-				case 22:
-					voice_V3a(m.voices[0]);
-					voice_V9(m.voices[6]);
-					voice_V6(m.voices[7]);
-					echo_22();
-					if (Phase(23, clocks_remain))
-						break;
-				case 23:
-					voice_V7(m.voices[7]);
-					echo_23();
-					if (Phase(24, clocks_remain))
-						break;
-				case 24:
-					voice_V8(m.voices[7]);
-					echo_24();
-					if (Phase(25, clocks_remain))
-						break;
-				case 25:
-					voice_V3b(m.voices[0]);
-					voice_V9(m.voices[7]);
-					echo_25();
-					if (Phase(26, clocks_remain))
-						break;
-				case 26:
-					echo_26();
-					if (Phase(27, clocks_remain))
-						break;
-				case 27:
-					misc_27();
-					echo_27();
-					if (Phase(28, clocks_remain))
-						break;
-				case 28:
-					misc_28();
-					echo_28();
-					if (Phase(29, clocks_remain))
-						break;
-				case 29:
-					misc_29();
-					echo_29();
-					if (Phase(30, clocks_remain))
-						break;
-				case 30:
-					misc_30();
-					voice_V3c(m.voices[0]);
-					echo_30();
-					if (Phase(31, clocks_remain))
-						break;
-				case 31:
-					voice_V4(m.voices[0]);
-					voice_V1(m.voices[2]);
+			case 0:
+				voice_V5(m.voices[0]);
+				voice_V2(m.voices[1]);
+				if (Phase(1, clocks_remain))
 					break;
+			case 1:
+				voice_V6(m.voices[0]);
+				voice_V3(m.voices[1]);
+				if (Phase(2, clocks_remain))
+					break;
+			case 2:
+				voice_V7_V4_V1(m.voices, 0);
+				if (Phase(3, clocks_remain))
+					break;
+			case 3:
+				voice_V8_V5_V2(m.voices, 0);
+				if (Phase(4, clocks_remain))
+					break;
+			case 4:
+				voice_V9_V6_V3(m.voices, 0);
+				if (Phase(5, clocks_remain))
+					break;
+			case 5:
+				voice_V7_V4_V1(m.voices, 1);
+				if (Phase(6, clocks_remain))
+					break;
+			case 6:
+				voice_V8_V5_V2(m.voices, 1);
+				if (Phase(7, clocks_remain))
+					break;
+			case 7:
+				voice_V9_V6_V3(m.voices, 1);
+				if (Phase(8, clocks_remain))
+					break;
+			case 8:
+				voice_V7_V4_V1(m.voices, 2);
+				if (Phase(9, clocks_remain))
+					break;
+			case 9:
+				voice_V8_V5_V2(m.voices, 2);
+				if (Phase(10, clocks_remain))
+					break;
+			case 10:
+				voice_V9_V6_V3(m.voices, 2);
+				if (Phase(11, clocks_remain))
+					break;
+			case 11:
+				voice_V7_V4_V1(m.voices, 3);
+				if (Phase(12, clocks_remain))
+					break;
+			case 12:
+				voice_V8_V5_V2(m.voices, 3);
+				if (Phase(13, clocks_remain))
+					break;
+			case 13:
+				voice_V9_V6_V3(m.voices, 3);
+				if (Phase(14, clocks_remain))
+					break;
+			case 14:
+				voice_V7_V4_V1(m.voices, 4);
+				if (Phase(15, clocks_remain))
+					break;
+			case 15:
+				voice_V8_V5_V2(m.voices, 4);
+				if (Phase(16, clocks_remain))
+					break;
+			case 16:
+				voice_V9_V6_V3(m.voices, 4);
+				if (Phase(17, clocks_remain))
+					break;
+			case 17:
+				voice_V1(m.voices[0]);
+				voice_V7(m.voices[5]);
+				voice_V4(m.voices[6]);
+				if (Phase(18, clocks_remain))
+					break;
+			case 18:
+				voice_V8_V5_V2(m.voices, 5);
+				if (Phase(19, clocks_remain))
+					break;
+			case 19:
+				voice_V9_V6_V3(m.voices, 5);
+				if (Phase(20, clocks_remain))
+					break;
+			case 20:
+				voice_V1(m.voices[1]);
+				voice_V7(m.voices[6]);
+				voice_V4(m.voices[7]);
+				if (Phase(21, clocks_remain))
+					break;
+			case 21:
+				voice_V8(m.voices[6]);
+				voice_V5(m.voices[7]);
+				voice_V2(m.voices[0]);
+				if (Phase(22, clocks_remain))
+					break;
+			case 22:
+				voice_V3a(m.voices[0]);
+				voice_V9(m.voices[6]);
+				voice_V6(m.voices[7]);
+				echo_22();
+				if (Phase(23, clocks_remain))
+					break;
+			case 23:
+				voice_V7(m.voices[7]);
+				echo_23();
+				if (Phase(24, clocks_remain))
+					break;
+			case 24:
+				voice_V8(m.voices[7]);
+				echo_24();
+				if (Phase(25, clocks_remain))
+					break;
+			case 25:
+				voice_V3b(m.voices[0]);
+				voice_V9(m.voices[7]);
+				echo_25();
+				if (Phase(26, clocks_remain))
+					break;
+			case 26:
+				echo_26();
+				if (Phase(27, clocks_remain))
+					break;
+			case 27:
+				misc_27();
+				echo_27();
+				if (Phase(28, clocks_remain))
+					break;
+			case 28:
+				misc_28();
+				echo_28();
+				if (Phase(29, clocks_remain))
+					break;
+			case 29:
+				misc_29();
+				echo_29();
+				if (Phase(30, clocks_remain))
+					break;
+			case 30:
+				misc_30();
+				voice_V3c(m.voices[0]);
+				echo_30();
+				if (Phase(31, clocks_remain))
+					break;
+			case 31:
+				voice_V4(m.voices[0]);
+				voice_V1(m.voices[2]);
+				break;
 			}
-		}
-		while (--clocks_remain != 0);
+		} while (--clocks_remain != 0);
 	}
 
 	// Sound control
 
-	// Mutes voices corresponding to non-zero bits in mask (issues repeated KOFF events).
+	// Mutes voices corresponding to non-zero bits in mask (issues repeated KOFF
+	// events).
 	// Reduces emulation accuracy.
 	public static final int voice_count = 8;
 
@@ -289,8 +287,9 @@ public class SPCDSP
 	{
 		System.arraycopy(regs, 0, m.regs, 0, m.regs.length);
 
-		//TODO: What the HELL is this doing?
-		//memset( &m.regs [register_count], 0, offsetof (state_t,ram) - register_count );
+		// TODO: What the HELL is this doing?
+		// memset( &m.regs [register_count], 0, offsetof (state_t,ram) -
+		// register_count );
 
 		// Internal state
 		for (int i = voice_count; --i >= 0;)
@@ -350,11 +349,17 @@ public class SPCDSP
 
 	public static final int extra_size = 16;
 
-	public void disable_surround(boolean disable) { } // not supported
+	public void disable_surround(boolean disable)
+	{
+		// not supported
+	}
 
 	public static final int echo_hist_size = 8;
 
-	public enum EnvMode { release, attack, decay, sustain }
+	public enum EnvMode
+	{
+		release, attack, decay, sustain
+	}
 
 	public static final int brr_buf_size = 12;
 
@@ -368,6 +373,7 @@ public class SPCDSP
 	}
 
 	private static final int simple_counter_range = 2048 * 5 * 3; // 30720
+
 	private final void run_counters()
 	{
 		if (--m.counter < 0)
@@ -376,7 +382,7 @@ public class SPCDSP
 		}
 	}
 
-	private static int[] counter_rates = { simple_counter_range + 1 /* never fires*/, 2048, 1536, 1280, 1024, 768, 640, 512, 384, 320, 256, 192, 160, 128, 96, 80, 64, 48, 40, 32, 24, 20, 16, 12, 10, 8, 6, 5, 4, 3, 2, 1 };
+	private static int[] counter_rates = { simple_counter_range + 1 /* never fires */, 2048, 1536, 1280, 1024, 768, 640, 512, 384, 320, 256, 192, 160, 128, 96, 80, 64, 48, 40, 32, 24, 20, 16, 12, 10, 8, 6, 5, 4, 3, 2, 1 };
 	private static int[] counter_offsets = { 1, 0, 1040, 536, 0, 1040, 536, 0, 1040, 536, 0, 1040, 536, 0, 1040, 536, 0, 1040, 536, 0, 1040, 536, 0, 1040, 536, 0, 1040, 536, 0, 1040, 0, 0 };
 
 	private int read_counter(int rate)
@@ -386,42 +392,43 @@ public class SPCDSP
 
 	private static short[] gauss =
 	{
-		0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,
-		1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   2,   2,   2,   2,   2,
-		2,   2,   3,   3,   3,   3,   3,   4,   4,   4,   4,   4,   5,   5,   5,   5,
-		6,   6,   6,   6,   7,   7,   7,   8,   8,   8,   9,   9,   9,  10,  10,  10,
-		11,  11,  11,  12,  12,  13,  13,  14,  14,  15,  15,  15,  16,  16,  17,  17,
-		18,  19,  19,  20,  20,  21,  21,  22,  23,  23,  24,  24,  25,  26,  27,  27,
-		28,  29,  29,  30,  31,  32,  32,  33,  34,  35,  36,  36,  37,  38,  39,  40,
-		41,  42,  43,  44,  45,  46,  47,  48,  49,  50,  51,  52,  53,  54,  55,  56,
-		58,  59,  60,  61,  62,  64,  65,  66,  67,  69,  70,  71,  73,  74,  76,  77,
-		78,  80,  81,  83,  84,  86,  87,  89,  90,  92,  94,  95,  97,  99, 100, 102,
-		104, 106, 107, 109, 111, 113, 115, 117, 118, 120, 122, 124, 126, 128, 130, 132,
-		134, 137, 139, 141, 143, 145, 147, 150, 152, 154, 156, 159, 161, 163, 166, 168,
-		171, 173, 175, 178, 180, 183, 186, 188, 191, 193, 196, 199, 201, 204, 207, 210,
-		212, 215, 218, 221, 224, 227, 230, 233, 236, 239, 242, 245, 248, 251, 254, 257,
-		260, 263, 267, 270, 273, 276, 280, 283, 286, 290, 293, 297, 300, 304, 307, 311,
-		314, 318, 321, 325, 328, 332, 336, 339, 343, 347, 351, 354, 358, 362, 366, 370,
-		374, 378, 381, 385, 389, 393, 397, 401, 405, 410, 414, 418, 422, 426, 430, 434,
-		439, 443, 447, 451, 456, 460, 464, 469, 473, 477, 482, 486, 491, 495, 499, 504,
-		508, 513, 517, 522, 527, 531, 536, 540, 545, 550, 554, 559, 563, 568, 573, 577,
-		582, 587, 592, 596, 601, 606, 611, 615, 620, 625, 630, 635, 640, 644, 649, 654,
-		659, 664, 669, 674, 678, 683, 688, 693, 698, 703, 708, 713, 718, 723, 728, 732,
-		737, 742, 747, 752, 757, 762, 767, 772, 777, 782, 787, 792, 797, 802, 806, 811,
-		816, 821, 826, 831, 836, 841, 846, 851, 855, 860, 865, 870, 875, 880, 884, 889,
-		894, 899, 904, 908, 913, 918, 923, 927, 932, 937, 941, 946, 951, 955, 960, 965,
-		969, 974, 978, 983, 988, 992, 997,1001,1005,1010,1014,1019,1023,1027,1032,1036,
-		1040,1045,1049,1053,1057,1061,1066,1070,1074,1078,1082,1086,1090,1094,1098,1102,
-		1106,1109,1113,1117,1121,1125,1128,1132,1136,1139,1143,1146,1150,1153,1157,1160,
-		1164,1167,1170,1174,1177,1180,1183,1186,1190,1193,1196,1199,1202,1205,1207,1210,
-		1213,1216,1219,1221,1224,1227,1229,1232,1234,1237,1239,1241,1244,1246,1248,1251,
-		1253,1255,1257,1259,1261,1263,1265,1267,1269,1270,1272,1274,1275,1277,1279,1280,
-		1282,1283,1284,1286,1287,1288,1290,1291,1292,1293,1294,1295,1296,1297,1297,1298,
-		1299,1300,1300,1301,1302,1302,1303,1303,1303,1304,1304,1304,1304,1304,1305,1305,
+			0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+			1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2,
+			2, 2, 3, 3, 3, 3, 3, 4, 4, 4, 4, 4, 5, 5, 5, 5,
+			6, 6, 6, 6, 7, 7, 7, 8, 8, 8, 9, 9, 9, 10, 10, 10,
+			11, 11, 11, 12, 12, 13, 13, 14, 14, 15, 15, 15, 16, 16, 17, 17,
+			18, 19, 19, 20, 20, 21, 21, 22, 23, 23, 24, 24, 25, 26, 27, 27,
+			28, 29, 29, 30, 31, 32, 32, 33, 34, 35, 36, 36, 37, 38, 39, 40,
+			41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56,
+			58, 59, 60, 61, 62, 64, 65, 66, 67, 69, 70, 71, 73, 74, 76, 77,
+			78, 80, 81, 83, 84, 86, 87, 89, 90, 92, 94, 95, 97, 99, 100, 102,
+			104, 106, 107, 109, 111, 113, 115, 117, 118, 120, 122, 124, 126, 128, 130, 132,
+			134, 137, 139, 141, 143, 145, 147, 150, 152, 154, 156, 159, 161, 163, 166, 168,
+			171, 173, 175, 178, 180, 183, 186, 188, 191, 193, 196, 199, 201, 204, 207, 210,
+			212, 215, 218, 221, 224, 227, 230, 233, 236, 239, 242, 245, 248, 251, 254, 257,
+			260, 263, 267, 270, 273, 276, 280, 283, 286, 290, 293, 297, 300, 304, 307, 311,
+			314, 318, 321, 325, 328, 332, 336, 339, 343, 347, 351, 354, 358, 362, 366, 370,
+			374, 378, 381, 385, 389, 393, 397, 401, 405, 410, 414, 418, 422, 426, 430, 434,
+			439, 443, 447, 451, 456, 460, 464, 469, 473, 477, 482, 486, 491, 495, 499, 504,
+			508, 513, 517, 522, 527, 531, 536, 540, 545, 550, 554, 559, 563, 568, 573, 577,
+			582, 587, 592, 596, 601, 606, 611, 615, 620, 625, 630, 635, 640, 644, 649, 654,
+			659, 664, 669, 674, 678, 683, 688, 693, 698, 703, 708, 713, 718, 723, 728, 732,
+			737, 742, 747, 752, 757, 762, 767, 772, 777, 782, 787, 792, 797, 802, 806, 811,
+			816, 821, 826, 831, 836, 841, 846, 851, 855, 860, 865, 870, 875, 880, 884, 889,
+			894, 899, 904, 908, 913, 918, 923, 927, 932, 937, 941, 946, 951, 955, 960, 965,
+			969, 974, 978, 983, 988, 992, 997, 1001, 1005, 1010, 1014, 1019, 1023, 1027, 1032, 1036,
+			1040, 1045, 1049, 1053, 1057, 1061, 1066, 1070, 1074, 1078, 1082, 1086, 1090, 1094, 1098, 1102,
+			1106, 1109, 1113, 1117, 1121, 1125, 1128, 1132, 1136, 1139, 1143, 1146, 1150, 1153, 1157, 1160,
+			1164, 1167, 1170, 1174, 1177, 1180, 1183, 1186, 1190, 1193, 1196, 1199, 1202, 1205, 1207, 1210,
+			1213, 1216, 1219, 1221, 1224, 1227, 1229, 1232, 1234, 1237, 1239, 1241, 1244, 1246, 1248, 1251,
+			1253, 1255, 1257, 1259, 1261, 1263, 1265, 1267, 1269, 1270, 1272, 1274, 1275, 1277, 1279, 1280,
+			1282, 1283, 1284, 1286, 1287, 1288, 1290, 1291, 1292, 1293, 1294, 1295, 1296, 1297, 1297, 1298,
+			1299, 1300, 1300, 1301, 1302, 1302, 1303, 1303, 1303, 1304, 1304, 1304, 1304, 1304, 1305, 1305,
 	};
 
 	private int interpolate(Voice v)
-	{ 	// Make pointers into gaussian based on fractional position between samples
+	{ // Make pointers into gaussian based on fractional position between
+		// samples
 		int offset = v.interp_pos >> 4 & 0xFF;
 		short[] fwd = gauss;
 		int fwd_Offset = 255 - offset;
@@ -434,7 +441,7 @@ public class SPCDSP
 		_out = (fwd[fwd_Offset + 0] * _in[_in_Offset + 0]) >> 11;
 		_out += (fwd[fwd_Offset + 256] * _in[_in_Offset + 1]) >> 11;
 		_out += (rev[rev_Offset + 256] * _in[_in_Offset + 2]) >> 11;
-		_out = (short)_out;
+		_out = (short) _out;
 		_out += (rev[rev_Offset + 0] * _in[_in_Offset + 3]) >> 11;
 
 		_out = Clamp16(_out);
@@ -445,8 +452,8 @@ public class SPCDSP
 	private void run_envelope(Voice v)
 	{
 		int env = v.env;
-		if (v.env_mode == EnvMode.release) // 60%
-		{
+		if (v.env_mode == EnvMode.release)
+		{ // 60%
 			if ((env -= 0x8) < 0)
 			{
 				env = 0;
@@ -457,52 +464,52 @@ public class SPCDSP
 		{
 			int rate;
 			int env_data = v.regs[v.r + VoiceReg_adsr1] & 0xFF;
-			if ((m.t_adsr0 & 0x80) != 0) // 99% ADSR
-			{
-				if (v.env_mode.ordinal() >= EnvMode.decay.ordinal()) // 99%
-				{
+			if ((m.t_adsr0 & 0x80) != 0)
+			{ // 99% ADSR
+				if (v.env_mode.ordinal() >= EnvMode.decay.ordinal())
+				{ // 99%
 					env--;
 					env -= env >> 8;
 					rate = env_data & 0x1F;
-					if (v.env_mode == EnvMode.decay) // 1%
-					{
+					if (v.env_mode == EnvMode.decay)
+					{ // 1%
 						rate = (m.t_adsr0 >> 3 & 0x0E) + 0x10;
 					}
 				}
-				else // env_attack
-				{
+				else
+				{ // env_attack
 					rate = (m.t_adsr0 & 0x0F) * 2 + 1;
 					env += rate < 31 ? 0x20 : 0x400;
 				}
 			}
-			else // GAIN
-			{
+			else
+			{ // GAIN
 				int mode;
 				env_data = v.regs[v.r + VoiceReg_gain] & 0xFF;
 				mode = env_data >> 5;
-				if (mode < 4) // direct
-				{
+				if (mode < 4)
+				{ // direct
 					env = env_data * 0x10;
 					rate = 31;
 				}
 				else
 				{
 					rate = env_data & 0x1F;
-					if (mode == 4) // 4: linear decrease
-					{
+					if (mode == 4)
+					{ // 4: linear decrease
 						env -= 0x20;
 					}
-					else if (mode < 6) // 5: exponential decrease
-					{
+					else if (mode < 6)
+					{ // 5: exponential decrease
 						env--;
 						env -= env >> 8;
 					}
-					else // 6,7: linear increase
-					{
+					else
+					{ // 6,7: linear increase
 						env += 0x20;
 						if (mode > 6 && (v.hidden_env & 0xFFFFFFFFL) >= 0x600L)
-						{
-							env += 0x8 - 0x20; // 7: two-slope linear increase
+						{ // 7: two-slope linear increase
+							env += 0x8 - 0x20;
 						}
 					}
 				}
@@ -553,13 +560,13 @@ public class SPCDSP
 		for (end_p = pos_p + 4; pos_p < end_p; pos_p++, nybbles <<= 4)
 		{
 			// Extract nybble and sign-extend
-			int s = (short)nybbles >> 12;
+			int s = (short) nybbles >> 12;
 
 			// Shift sample based on header
 			int shift = header >> 4;
 			s = (s << shift) >> 1;
-			if (shift >= 0xD) // handle invalid range
-			{
+			if (shift >= 0xD)
+			{ // handle invalid range
 				s = (s >> 25) << 11; // same as: s = (s < 0 ? -0x800 : 0)
 			}
 
@@ -571,33 +578,35 @@ public class SPCDSP
 			{
 				s += p1;
 				s -= p2;
-				if (filter == 8) // s += p1 * 0.953125 - p2 * 0.46875
-				{
+				if (filter == 8)
+				{ // s += p1 * 0.953125 - p2 * 0.46875
 					s += p2 >> 4;
 					s += (p1 * -3) >> 6;
 				}
-				else // s += p1 * 0.8984375 - p2 * 0.40625
-				{
+				else
+				{ // s += p1 * 0.8984375 - p2 * 0.40625
 					s += (p1 * -13) >> 7;
 					s += (p2 * 3) >> 4;
 				}
 			}
-			else if (filter != 0) // s += p1 * 0.46875
-			{
+			else if (filter != 0)
+			{ // s += p1 * 0.46875
 				s += p1 >> 1;
 				s += (-p1) >> 5;
 			}
 
 			// Adjust and write sample
 			s = Clamp16(s);
-			s = (short)(s * 2);
-			pos[pos_p + brr_buf_size] = pos[pos_p + 0] = s; // second copy simplifies wrap-around
+			s = (short) (s * 2);
+			// second copy simplifies wrap-around
+			pos[pos_p + brr_buf_size] = pos[pos_p + 0] = s;
 		}
 	}
 
 	private void misc_27()
 	{
-		m.t_pmon = m.regs[GlobalReg_pmon] & 0xFE; // voice 0 doesn't support PMON
+		// voice 0 doesn't support PMON
+		m.t_pmon = m.regs[GlobalReg_pmon] & 0xFE;
 	}
 
 	private void misc_28()
@@ -634,8 +643,8 @@ public class SPCDSP
 	}
 
 	private void voice_output(Voice v, int ch)
-	{	// Apply left/right volume
-		int amp = (m.t_output * (byte)(v.regs[v.r + VoiceReg_voll + ch] & 0xFF)) >> 7;
+	{ // Apply left/right volume
+		int amp = (m.t_output * (byte) (v.regs[v.r + VoiceReg_voll + ch] & 0xFF)) >> 7;
 
 		// Add to output total
 		m.t_main_out[ch] += amp;
@@ -656,15 +665,15 @@ public class SPCDSP
 	}
 
 	private void voice_V2(Voice v)
-	{ 	// Read sample pointer (ignored if not needed)
+	{ // Read sample pointer (ignored if not needed)
 		int entry = m.t_dir_addr & 0xFFFF;
 		if (v.kon_delay == 0)
 		{
 			entry += 2;
 		}
 		int lo = m.ram.read8bit(entry + 0) & 0xFF;
-        int hi = m.ram.read8bit(entry + 1) & 0xFF;
-        m.t_brr_next_addr = ((hi << 8) + lo);
+		int hi = m.ram.read8bit(entry + 1) & 0xFF;
+		m.t_brr_next_addr = ((hi << 8) + lo);
 
 		m.t_adsr0 = v.regs[v.r + VoiceReg_adsr0] & 0xFF;
 
@@ -685,7 +694,7 @@ public class SPCDSP
 	}
 
 	private void voice_V3b(Voice v)
-	{ 	// Read BRR header and byte
+	{ // Read BRR header and byte
 		m.t_brr_byte = m.ram.read8bit((v.brr_addr + v.brr_offset) & 0xFFFF) & 0xFF;
 		m.t_brr_header = m.ram.read8bit(v.brr_addr) & 0xFF; // brr_addr doesn't need masking
 	}
@@ -730,7 +739,7 @@ public class SPCDSP
 			// Noise
 			if ((m.t_non & v.vbit) != 0)
 			{
-				output = (short)(m.noise * 2);
+				output = (short) (m.noise * 2);
 			}
 
 			// Apply envelope
@@ -769,7 +778,7 @@ public class SPCDSP
 	}
 
 	private void voice_V4(Voice v)
-	{ 	// Decode BRR
+	{ // Decode BRR
 		m.t_looped = 0;
 		if (v.interp_pos >= 0x4000)
 		{
@@ -803,7 +812,7 @@ public class SPCDSP
 	}
 
 	private void voice_V5(Voice v)
-	{ 	// Output right
+	{ // Output right
 		voice_output(v, 1);
 
 		// ENDX, OUTX, and ENVX won't update if you wrote to them 1-2 clocks earlier
@@ -823,19 +832,19 @@ public class SPCDSP
 	}
 
 	private void voice_V7(Voice v)
-	{ 	// Update ENDX
+	{ // Update ENDX
 		m.regs[GlobalReg_endx] = m.endx_buf & 0xFF;
 
 		m.envx_buf = v.t_envx_out & 0xFF;
 	}
 
 	private void voice_V8(Voice v)
-	{ 	// Update OUTX
+	{ // Update OUTX
 		v.regs[v.r + VoiceReg_outx] = m.outx_buf & 0xFF;
 	}
 
 	private void voice_V9(Voice v)
-	{ 	// Update ENVX
+	{ // Update ENVX
 		v.regs[v.r + VoiceReg_envx] = m.envx_buf & 0xFF;
 	}
 
@@ -863,16 +872,16 @@ public class SPCDSP
 	private void echo_read(int ch)
 	{
 		int lo = m.ram.read8bit(((m.t_echo_ptr + ch * 2) + 0) & 0xFFFF) & 0xFF;
-        int hi = m.ram.read8bit(((m.t_echo_ptr + ch * 2) + 1) & 0xFFFF) & 0xFF;
-        int s = (short)((hi << 8) + lo);
+		int hi = m.ram.read8bit(((m.t_echo_ptr + ch * 2) + 1) & 0xFFFF) & 0xFF;
+		int s = (short) ((hi << 8) + lo);
 		// second copy simplifies wrap-around handling
 		m.echo_hist[m.echo_hist_pos + 0][ch] = m.echo_hist[m.echo_hist_pos + 8][ch] = s >> 1;
 	}
 
 	private int echo_output(int ch)
 	{
-		int _out = (short)((m.t_main_out[ch] * (byte)(m.regs[GlobalReg_mvoll + ch * 0x10] & 0xFF)) >> 7) +
-			(short)((m.t_echo_in[ch] * (byte)(m.regs[GlobalReg_evoll + ch * 0x10] & 0xFF)) >> 7);
+		int _out = (short) ((m.t_main_out[ch] * (byte) (m.regs[GlobalReg_mvoll + ch * 0x10] & 0xFF)) >> 7) +
+				(short) ((m.t_echo_in[ch] * (byte) (m.regs[GlobalReg_evoll + ch * 0x10] & 0xFF)) >> 7);
 		_out = Clamp16(_out);
 		return _out;
 	}
@@ -882,19 +891,19 @@ public class SPCDSP
 		if ((m.t_echo_enabled & 0x20) == 0)
 		{
 			int s = m.t_echo_out[ch];
-			m.ram.write8bit(((m.t_echo_ptr + ch * 2) + 0) & 0xFFFF, (byte)s);
-			m.ram.write8bit(((m.t_echo_ptr + ch * 2) + 1) & 0xFFFF, (byte)(s >> 8));
+			m.ram.write8bit(((m.t_echo_ptr + ch * 2) + 0) & 0xFFFF, (byte) s);
+			m.ram.write8bit(((m.t_echo_ptr + ch * 2) + 1) & 0xFFFF, (byte) (s >> 8));
 		}
 		m.t_echo_out[ch] = 0;
 	}
 
 	private int CalcFir(int i, int ch)
 	{
-		return ((m.echo_hist[m.echo_hist_pos + i + 1][ch] * (byte)(m.regs[GlobalReg_fir + i * 0x10] & 0xFF)) >> 6);
+		return ((m.echo_hist[m.echo_hist_pos + i + 1][ch] * (byte) (m.regs[GlobalReg_fir + i * 0x10] & 0xFF)) >> 6);
 	}
 
 	private void echo_22()
-	{ 	// History
+	{ // History
 		if (m.echo_hist_pos + 1 >= echo_hist_size)
 		{
 			m.echo_hist_pos = 0;
@@ -940,11 +949,11 @@ public class SPCDSP
 		int l = m.t_echo_in[0] + CalcFir(6, 0);
 		int r = m.t_echo_in[1] + CalcFir(6, 1);
 
-		l = (short)l;
-		r = (short)r;
+		l = (short) l;
+		r = (short) r;
 
-		l += (short)CalcFir(7, 0);
-		r += (short)CalcFir(7, 1);
+		l += (short) CalcFir(7, 0);
+		r += (short) CalcFir(7, 1);
 
 		l = Clamp16(l);
 		r = Clamp16(r);
@@ -954,13 +963,13 @@ public class SPCDSP
 	}
 
 	private void echo_26()
-	{ 	// Left output volumes
+	{ // Left output volumes
 		// (save sample for next clock so we can output both together)
 		m.t_main_out[0] = echo_output(0);
 
 		// Echo feedback
-		int l = m.t_echo_out[0] + (short)((m.t_echo_in[0] * (byte)(m.regs[GlobalReg_efb] & 0xFF)) >> 7);
-		int r = m.t_echo_out[1] + (short)((m.t_echo_in[1] * (byte)(m.regs[GlobalReg_efb] & 0xFF)) >> 7);
+		int l = m.t_echo_out[0] + (short) ((m.t_echo_in[0] * (byte) (m.regs[GlobalReg_efb] & 0xFF)) >> 7);
+		int r = m.t_echo_out[1] + (short) ((m.t_echo_in[1] * (byte) (m.regs[GlobalReg_efb] & 0xFF)) >> 7);
 
 		l = Clamp16(l);
 		r = Clamp16(r);
@@ -971,24 +980,25 @@ public class SPCDSP
 
 	private final void WRITE_SAMPLES(int l, int r)
 	{
-		m._out[m._out_Offset + 0] = (short)l;
-		m._out[m._out_Offset + 1] = (short)r;
+		m._out[m._out_Offset + 0] = (short) l;
+		m._out[m._out_Offset + 1] = (short) r;
 		m._out_Offset += 2;
 		if (m._out_Offset >= m._out.length)
 		{
 			assert m._out_Offset == m._out.length;
-			//TODO: fix this assert
-			//Debug.Assert(m._out.Array.Length != m.extra[extra_size] ||
-			//    (m.extra <= m.out_begin && m.extra < m.extra[extra_size]));
-			//m._out = new ArraySegment<short>(m.extra, 0, m.extra.Length);
+			// TODO: fix this assert
+			// Debug.Assert(m._out.Array.Length != m.extra[extra_size] ||
+			// (m.extra <= m.out_begin && m.extra < m.extra[extra_size]));
+			// m._out = new ArraySegment<short>(m.extra, 0, m.extra.Length);
 			m._out = m.extra;
-			//TODO: determine what's really happening here in bsnes code
-			//m._out = new ArraySegment<short>(m.extra, extra_size, m.extra.Length - extra_size);
+			// TODO: determine what's really happening here in bsnes code
+			// m._out = new ArraySegment<short>(m.extra, extra_size,
+			// m.extra.Length - extra_size);
 		}
 	}
 
 	private void echo_27()
-	{	// Output
+	{ // Output
 		int l = m.t_main_out[0];
 		int r = echo_output(1);
 		m.t_main_out[0] = 0;
@@ -1033,7 +1043,7 @@ public class SPCDSP
 	}
 
 	private void echo_30()
-	{ 	// Write right echo
+	{ // Write right echo
 		echo_write(1);
 	}
 

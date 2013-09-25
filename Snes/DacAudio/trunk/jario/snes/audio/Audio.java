@@ -11,41 +11,44 @@ public class Audio implements Hardware, Bus32bit
 	private BusDMA output;
 	private byte[] buffer0 = new byte[8192];
 	private ByteBuffer outputBuffer;
-    private int bufferIndex;
-    
-    public Audio()
-    {
-    	outputBuffer = ByteBuffer.wrap(buffer0);
-    	reset();
-    }
-	
+	private int bufferIndex;
+
+	public Audio()
+	{
+		outputBuffer = ByteBuffer.wrap(buffer0);
+		reset();
+	}
+
 	@Override
-    public void connect(int port, Hardware hw)
+	public void connect(int port, Hardware hw)
 	{
 		switch (port)
 		{
-			case 0: output = (BusDMA)hw; break;
+		case 0:
+			output = (BusDMA) hw;
+			break;
 		}
 	}
-	
-    @Override
-    public void reset()
-    {
-    	bufferIndex = 0;
-    }
-    
-    @Override
+
+	@Override
+	public void reset()
+	{
+		bufferIndex = 0;
+	}
+
+	@Override
 	public int read32bit(int address)
-    {
-    	switch (address)
-    	{
-	    	case 0:
-	    		int index = bufferIndex;
-	    		output.writeDMA(0, outputBuffer, 0, index);
-	    		bufferIndex = 0;
-	    		return index;
-			default: return 0;
-    	}
+	{
+		switch (address)
+		{
+		case 0:
+			int index = bufferIndex;
+			output.writeDMA(0, outputBuffer, 0, index);
+			bufferIndex = 0;
+			return index;
+		default:
+			return 0;
+		}
 	}
 
 	@Override
@@ -53,10 +56,10 @@ public class Audio implements Hardware, Bus32bit
 	{
 		if (bufferIndex < buffer0.length)
 		{
-			buffer0[bufferIndex++] = (byte)(sample >> 24); // left
-			buffer0[bufferIndex++] = (byte)(sample >> 16); // left
-			buffer0[bufferIndex++] = (byte)(sample >> 8); // right
-			buffer0[bufferIndex++] = (byte)(sample >> 0); // right
+			buffer0[bufferIndex++] = (byte) (sample >> 24); // left
+			buffer0[bufferIndex++] = (byte) (sample >> 16); // left
+			buffer0[bufferIndex++] = (byte) (sample >> 8); // right
+			buffer0[bufferIndex++] = (byte) (sample >> 0); // right
 		}
 	}
 }

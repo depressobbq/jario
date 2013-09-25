@@ -6,16 +6,21 @@ import jario.hardware.Hardware;
 public class BusB extends Status implements Hardware, Bus8bit
 {
 	@Override
-	public void connect(int port, Hardware hw) { }
-	
+	public void connect(int port, Hardware hw)
+	{
+	}
+
 	@Override
-	public void reset() { }
-	
+	public void reset()
+	{
+	}
+
 	@Override
 	public byte read8bit(int address)
 	{
-		return (byte)CPU.cpu.port_data[address & 0x3];
+		return (byte) CPU.cpu.port_data[address & 0x3];
 	}
+
 	@Override
 	public void write8bit(int address, byte data)
 	{
