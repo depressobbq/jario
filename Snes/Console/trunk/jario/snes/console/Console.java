@@ -26,8 +26,6 @@ public class Console implements Hardware, Clockable, Configurable
 	Hardware smp;
 	Hardware counter_cpu;
 	Hardware counter_ppu;
-	Hardware display;
-	Hardware apuram;
 	Hardware cartridge;
 	Hardware video;
 	Hardware audio;
@@ -77,12 +75,10 @@ public class Console implements Hardware, Clockable, Configurable
 			ppu = (Hardware) Class.forName(prop.getProperty("PPU", "PPU"), true, loader).newInstance();
 			smp = (Hardware) Class.forName(prop.getProperty("SMP", "SMP"), true, loader).newInstance();
 			dsp = (Hardware) Class.forName(prop.getProperty("DSP", "DSP"), true, loader).newInstance();
-			apuram = (Hardware) Class.forName(prop.getProperty("APU_RAM", "APU_RAM"), true, loader).newInstance();
 			counter_cpu = (Hardware) Class.forName(prop.getProperty("PPU_COUNTER", "PPU_COUNTER"), true, loader).newInstance();
 			counter_ppu = (Hardware) Class.forName(prop.getProperty("PPU_COUNTER", "PPU_COUNTER"), true, loader).newInstance();
-			display = (Hardware) Class.forName(prop.getProperty("PPU_DISPLAY", "PPU_DISPLAY"), true, loader).newInstance();
-			video = (Hardware) Class.forName(prop.getProperty("DAC_VIDEO", "VIDEO"), true, loader).newInstance();
-			audio = (Hardware) Class.forName(prop.getProperty("DAC_AUDIO", "AUDIO"), true, loader).newInstance();
+			video = (Hardware) Class.forName(prop.getProperty("ENC", "ENC"), true, loader).newInstance();
+			audio = (Hardware) Class.forName(prop.getProperty("DAC", "DAC"), true, loader).newInstance();
 			input = (Hardware) Class.forName(prop.getProperty("INPUT", "INPUT"), true, loader).newInstance();
 		}
 		catch (InstantiationException | IllegalAccessException | ClassNotFoundException e)
@@ -100,32 +96,24 @@ public class Console implements Hardware, Clockable, Configurable
 		cpu.connect(2, input);
 		cpu.connect(3, counter_cpu);
 		cpu.connect(4, video);
-		cpu.connect(5, display);
-		cpu.connect(6, ppu);
-		counter_cpu.connect(0, display);
+		cpu.connect(5, ppu);
+		counter_cpu.connect(0, ppu);
 		((Configurable) cpu).writeConfig("cpu version", Configuration.config.cpu.version);
 
-		ppu.connect(0, display);
-		ppu.connect(1, counter_ppu);
-		ppu.connect(2, counter_cpu);
-		display.connect(0, ppu);
-		counter_ppu.connect(0, display);
+		ppu.connect(0, counter_ppu);
+		ppu.connect(1, counter_cpu);
+		counter_ppu.connect(0, ppu);
 		((Configurable) ppu).writeConfig("ppu1 version", Configuration.config.ppu1.version);
 		((Configurable) ppu).writeConfig("ppu2 version", Configuration.config.ppu2.version);
 
-		smp.connect(0, apuram);
-		smp.connect(1, dsp);
-		smp.connect(2, cpu);
+		smp.connect(0, dsp);
+		smp.connect(1, cpu);
 
-		dsp.connect(0, apuram);
-		dsp.connect(1, audio);
+		dsp.connect(0, audio);
 
-		video.connect(1, display);
-		video.connect(2, ppu);
-		video.connect(3, counter_ppu);
-		video.connect(4, audio); // DAC
-
-		input.connect(2, display);
+		video.connect(1, ppu);
+		video.connect(2, counter_ppu);
+		video.connect(3, audio); // to simulate multi-out
 	}
 
 	@Override

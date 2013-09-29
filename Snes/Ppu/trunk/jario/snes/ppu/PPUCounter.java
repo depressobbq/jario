@@ -1,14 +1,14 @@
 package jario.snes.ppu;
 
+import jario.hardware.Bus1bit;
 import jario.hardware.Bus32bit;
-import jario.hardware.Bus8bit;
 import jario.hardware.Clockable;
 import jario.hardware.Configurable;
 import jario.hardware.Hardware;
 
 public class PPUCounter implements Hardware, Clockable, Bus32bit, Configurable
 {
-	private Bus8bit display;
+	private Bus1bit ppu1bit;
 	private boolean pal;
 
 	@Override
@@ -17,7 +17,7 @@ public class PPUCounter implements Hardware, Clockable, Bus32bit, Configurable
 		switch (port)
 		{
 		case 0:
-			display = (Bus8bit) hw;
+			ppu1bit = (Bus1bit) hw;
 			break;
 		}
 	}
@@ -131,7 +131,7 @@ public class PPUCounter implements Hardware, Clockable, Bus32bit, Configurable
 	{
 		if (++status.vcounter == 128)
 		{
-			status.interlace = display.read8bit(0) != 0;
+			status.interlace = ppu1bit.read1bit(0);
 		}
 
 		if ((!pal && status.interlace == false && status.vcounter == 262)

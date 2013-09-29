@@ -1,7 +1,5 @@
 package jario.snes.performance.dsp;
 
-import jario.hardware.Bus8bit;
-
 public class State
 {
 	public int[] regs = new int[SPCDSP.register_count];
@@ -58,7 +56,7 @@ public class State
 	public Voice[] voices = new Voice[SPCDSP.voice_count];
 
 	// non-emulation state
-	public Bus8bit ram; // 64K shared RAM between DSP and SMP
+	public byte[] ram; // 64K shared RAM between DSP and SMP
 	public int mute_mask;
 	public short[] _out;
 	public int _out_Offset;

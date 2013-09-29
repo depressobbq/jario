@@ -1,5 +1,6 @@
 package jario.snes.performance.ppu;
 
+import jario.hardware.Bus1bit;
 import jario.hardware.Bus8bit;
 import jario.hardware.BusDMA;
 import jario.hardware.Clockable;
@@ -9,7 +10,7 @@ import jario.hardware.Hardware;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 
-public class PPU implements Hardware, Clockable, Bus8bit, BusDMA, Configurable
+public class PPU implements Hardware, Clockable, Bus1bit, Bus8bit, BusDMA, Configurable
 {
 	public static final int NTSC = 0;
 	public static final int PAL = 1;
@@ -29,18 +30,10 @@ public class PPU implements Hardware, Clockable, Bus8bit, BusDMA, Configurable
 		switch (port)
 		{
 		case 0:
-			display = (Display) hw;
-			display.width = 256;
-			display.height = 224;
-			display.interlace = false;
-			display.overscan = false;
-			display.latch = 1;
-			break;
-		case 1:
 			PPUCounter = (PPUCounter) hw;
 			PPUCounter.reset();
 			break;
-		case 2:
+		case 1:
 			cpuPPUCounter = (PPUCounter) hw;
 			break;
 		}
@@ -62,18 +55,46 @@ public class PPU implements Hardware, Clockable, Bus8bit, BusDMA, Configurable
 		regs.vcounter = cpuPPUCounter.vcounter() & 0xFFFF;
 		regs.counters_latched = true;
 	}
+	
+	@Override
+	public boolean read1bit(int address)
+	{
+		switch (address)
+		{
+		case 0: return interlace();
+		case 1: return overscan();
+		case 2: return hires();
+		case 3: return PPUCounter.status.field;
+		default: return false;
+		}
+	}
+	
+	@Override
+	public void write1bit(int address, boolean data)
+	{
+		switch (address)
+		{
+		case 29:
+			if (display.latch != 0 && data == false)
+			{
+				latch_counters();
+			}
+			display.latch = data ? 1 : 0;
+			break;
+		}
+	}
 
-	public boolean interlace()
+	boolean interlace()
 	{
 		return display.interlace;
 	}
 
-	public boolean overscan()
+	boolean overscan()
 	{
 		return display.overscan;
 	}
 
-	public boolean hires()
+	boolean hires()
 	{
 		return regs.pseudo_hires || regs.bgmode == 5 || regs.bgmode == 6;
 	}
@@ -209,6 +230,13 @@ public class PPU implements Hardware, Clockable, Bus8bit, BusDMA, Configurable
 		sprite = new Sprite(this);
 		screen = new Screen(this);
 		output = ByteBuffer.allocate(1024 * 1024 * 2);
+		
+		display = new Display();
+		display.width = 256;
+		display.height = 224;
+		display.interlace = false;
+		display.overscan = false;
+		display.latch = 1;
 
 		power();
 	}

@@ -1,5 +1,6 @@
 package jario.snes.cpu;
 
+import jario.hardware.Bus1bit;
 import jario.hardware.Bus32bit;
 import jario.hardware.Bus8bit;
 import jario.hardware.Clockable;
@@ -13,10 +14,10 @@ public class CPU extends CPUCore implements Hardware, Clockable, Bus8bit, Config
 	protected Bus8bit bus;
 	protected Clockable smp_clk;
 	protected Clockable ppu_clk;
+	protected Bus1bit ppu1bit;
 	protected Bus8bit smp_bus;
 	protected Bus8bit input_bus;
 	protected Bus32bit video_bus;
-	protected Bus8bit display_bus;
 
 	private long smpClocks;
 	private int ticks;
@@ -73,10 +74,8 @@ public class CPU extends CPUCore implements Hardware, Clockable, Bus8bit, Config
 			video_bus = (Bus32bit) hw;
 			break;
 		case 5:
-			display_bus = (Bus8bit) hw;
-			break;
-		case 6:
 			ppu_clk = (Clockable) hw;
+			ppu1bit = (Bus1bit) hw;
 			break;
 		}
 	}
@@ -601,7 +600,7 @@ public class CPU extends CPUCore implements Hardware, Clockable, Bus8bit, Config
 	private byte mmio_r4212()
 	{
 		int r = regs.mdr & 0x3e;
-		int vs = (display_bus.read8bit(1) == 0 ? 225 : 240);
+		int vs = (!ppu1bit.read1bit(1) ? 225 : 240);
 		if (counter_bus.read32bit(0) >= vs && counter_bus.read32bit(0) <= (vs + 2))
 		{
 			r |= 0x01; // auto joypad polling
@@ -780,7 +779,7 @@ public class CPU extends CPUCore implements Hardware, Clockable, Bus8bit, Config
 
 	private void mmio_w4201(byte data)
 	{
-		display_bus.write8bit(0, data);
+		ppu1bit.write1bit(29, ((data >> 7) & 0x1) != 0);
 		status.pio = data & 0xFF;
 	}
 
@@ -995,13 +994,13 @@ public class CPU extends CPUCore implements Hardware, Clockable, Bus8bit, Config
 			status.dram_refreshed = false;
 
 			// HDMA triggers once every visible scanline
-			if (counter_bus.read32bit(0) <= (display_bus.read8bit(1) == 0 ? 224 : 239))
+			if (counter_bus.read32bit(0) <= (!ppu1bit.read1bit(1) ? 224 : 239))
 			{
 				status.hdma_position = 1104;
 				status.hdma_triggered = false;
 			}
 
-			if (status.auto_joypad_poll == true && counter_bus.read32bit(0) == (display_bus.read8bit(1) == 0 ? 227 : 242))
+			if (status.auto_joypad_poll == true && counter_bus.read32bit(0) == (!ppu1bit.read1bit(1) ? 227 : 242))
 			{
 				input_bus.write8bit(1, (byte) 0); // poll
 				run_auto_joypad_poll();
@@ -1166,7 +1165,7 @@ public class CPU extends CPUCore implements Hardware, Clockable, Bus8bit, Config
 		}
 
 		// NMI test
-		boolean nmi_valid = (counter_bus.read32bit(2048 + 2) >= (display_bus.read8bit(1) == 0 ? 225 : 240));
+		boolean nmi_valid = (counter_bus.read32bit(2048 + 2) >= (!ppu1bit.read1bit(1) ? 225 : 240));
 		if (!status.nmi_valid && nmi_valid)
 		{
 			// 0->1 edge sensitive transition

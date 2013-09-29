@@ -1,7 +1,7 @@
 package jario.snes.video;
 
+import jario.hardware.Bus1bit;
 import jario.hardware.Bus32bit;
-import jario.hardware.Bus8bit;
 import jario.hardware.BusDMA;
 import jario.hardware.Clockable;
 import jario.hardware.Configurable;
@@ -18,8 +18,8 @@ public class Video implements Hardware, Clockable, Bus32bit, Configurable
 	private int SKIP_TICKS = 1000 / FRAMES_PER_SECOND;
 
 	private BusDMA output;
-	private Bus8bit display_bus;
-	private BusDMA ppu_bus;
+	private BusDMA ppuDma;
+	private Bus1bit ppu1bit;
 	private Bus32bit counter_bus;
 	private Bus32bit audio;
 
@@ -71,15 +71,13 @@ public class Video implements Hardware, Clockable, Bus32bit, Configurable
 			output = (BusDMA) hw;
 			break;
 		case 1:
-			display_bus = (Bus8bit) hw;
+			ppuDma = (BusDMA) hw;
+			ppu1bit = (Bus1bit) hw;
 			break;
 		case 2:
-			ppu_bus = (BusDMA) hw;
-			break;
-		case 3:
 			counter_bus = (Bus32bit) hw;
 			break;
-		case 4:
+		case 3:
 			audio = (Bus32bit) hw;
 			break;
 		}
@@ -93,17 +91,17 @@ public class Video implements Hardware, Clockable, Bus32bit, Configurable
 	@Override
 	public void clock(long clocks)
 	{
-		ppu_bus.readDMA(0, data_output, 0, 512 * 478 * 2);
+		ppuDma.readDMA(0, data_output, 0, 512 * 478 * 2);
 
 		ShortBuffer data = data_output.asShortBuffer();
 		int data_offset = 0;
 
-		if (display_bus.read8bit(0) != 0 && counter_bus.read32bit(2) != 0)
+		if (ppu1bit.read1bit(0) && counter_bus.read32bit(2) != 0)
 		{
 			data_offset += 512;
 		}
 		int width = 256;
-		int height = display_bus.read8bit(1) == 0 ? 224 : 239;
+		int height = !ppu1bit.read1bit(1) ? 224 : 239;
 
 		if (frame_hires)
 		{
@@ -170,9 +168,9 @@ public class Video implements Hardware, Clockable, Bus32bit, Configurable
 		int y = data;
 		if (y >= 240) { return; }
 
-		frame_hires |= (display_bus.read8bit(2) != 0);
-		frame_interlace |= (display_bus.read8bit(0) != 0);
-		int width = (display_bus.read8bit(2) == 0 ? 256 : 512);
+		frame_hires |= ppu1bit.read1bit(2);
+		frame_interlace |= ppu1bit.read1bit(0);
+		int width = !ppu1bit.read1bit(2) ? 256 : 512;
 		line_width[y] = width;
 	}
 

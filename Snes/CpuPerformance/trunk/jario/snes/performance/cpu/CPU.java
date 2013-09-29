@@ -1,5 +1,6 @@
 package jario.snes.performance.cpu;
 
+import jario.hardware.Bus1bit;
 import jario.hardware.Bus32bit;
 import jario.hardware.Bus8bit;
 import jario.hardware.Clockable;
@@ -14,10 +15,10 @@ public class CPU extends CPUCore implements Hardware, Clockable, Bus8bit, Config
 	protected Bus8bit bus;
 	protected Clockable smp_clk;
 	protected Clockable ppu_clk;
+	protected Bus1bit ppu1bit;
 	protected Bus8bit smp_bus;
 	protected Bus8bit input_port;
 	protected Bus32bit video;
-	protected Bus8bit display_bus;
 
 	private long smpClocks;
 
@@ -68,10 +69,8 @@ public class CPU extends CPUCore implements Hardware, Clockable, Bus8bit, Config
 			video = (Bus32bit) hw;
 			break;
 		case 5:
-			display_bus = (Bus8bit) hw;
-			break;
-		case 6:
 			ppu_clk = (Clockable) hw;
+			ppu1bit = (Bus1bit) hw;
 			break;
 		}
 	}
@@ -213,7 +212,7 @@ public class CPU extends CPUCore implements Hardware, Clockable, Bus8bit, Config
 		case 0x4212:
 		{
 			int result = (regs.mdr & 0x3e);
-			int vbstart = display_bus.read8bit(1) == 0 ? 225 : 240;
+			int vbstart = !ppu1bit.read1bit(1) ? 225 : 240;
 
 			if (PPUCounter.read32bit(0) >= vbstart && PPUCounter.read32bit(0) <= vbstart + 2)
 			{
@@ -372,7 +371,7 @@ public class CPU extends CPUCore implements Hardware, Clockable, Bus8bit, Config
 		}
 		case 0x4201:
 		{
-			display_bus.write8bit(0, data_);
+			ppu1bit.write1bit(29, ((data >> 7) & 0x1) != 0);
 			status.pio = data;
 			// goto case 0x4202;
 		}
@@ -759,7 +758,7 @@ public class CPU extends CPUCore implements Hardware, Clockable, Bus8bit, Config
 
 			queue.enqueue(534, QueueEvent_DramRefresh);
 
-			if (PPUCounter.read32bit(0) <= (display_bus.read8bit(1) == 0 ? 224 : 239))
+			if (PPUCounter.read32bit(0) <= (!ppu1bit.read1bit(1) ? 224 : 239))
 			{
 				queue.enqueue(1104 + 8, QueueEvent_HdmaRun);
 			}
@@ -771,7 +770,7 @@ public class CPU extends CPUCore implements Hardware, Clockable, Bus8bit, Config
 			// }
 
 			boolean nmi_valid = status.nmi_valid;
-			status.nmi_valid = PPUCounter.read32bit(0) >= (display_bus.read8bit(1) == 0 ? 225 : 240);
+			status.nmi_valid = PPUCounter.read32bit(0) >= (!ppu1bit.read1bit(1) ? 225 : 240);
 
 			if (!nmi_valid && status.nmi_valid)
 			{
@@ -786,7 +785,7 @@ public class CPU extends CPUCore implements Hardware, Clockable, Bus8bit, Config
 				status.nmi_line = false;
 			}
 
-			if (status.auto_joypad_poll_enabled && PPUCounter.read32bit(0) == (display_bus.read8bit(1) == 0 ? 227 : 242))
+			if (status.auto_joypad_poll_enabled && PPUCounter.read32bit(0) == (!ppu1bit.read1bit(1) ? 227 : 242))
 			{
 				input_port.write8bit(1, (byte) 0); // poll
 				run_auto_joypad_poll();
