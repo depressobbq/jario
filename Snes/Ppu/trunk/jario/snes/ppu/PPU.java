@@ -1,5 +1,6 @@
 package jario.snes.ppu;
 
+import jario.hardware.Bus1bit;
 import jario.hardware.Bus8bit;
 import jario.hardware.BusDMA;
 import jario.hardware.Clockable;
@@ -9,7 +10,7 @@ import jario.hardware.Hardware;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 
-public class PPU implements Hardware, Clockable, Bus8bit, BusDMA, Configurable
+public class PPU implements Hardware, Clockable, Bus1bit, Bus8bit, BusDMA, Configurable
 {
 	static class Output
 	{
@@ -51,11 +52,6 @@ public class PPU implements Hardware, Clockable, Bus8bit, BusDMA, Configurable
 		switch (port)
 		{
 		case 0:
-			display = (Display) hw;
-			display.latch = 1;
-			display.hires = true;
-			break;
-		case 1:
 			counter = (PPUCounter) hw;
 			counter.reset();
 			break;
@@ -69,20 +65,33 @@ public class PPU implements Hardware, Clockable, Bus8bit, BusDMA, Configurable
 		regs.vcounter = counter.status.vcounter & 0xFFFF;
 		regs.counters_latched = true;
 	}
-
-	public boolean interlace()
+	
+	@Override
+	public boolean read1bit(int address)
 	{
-		return display.interlace;
+		switch (address)
+		{
+		case 0: return display.interlace;
+		case 1: return display.overscan;
+		case 2: return display.hires;
+		case 3: return counter.status.field;
+		default: return false;
+		}
 	}
-
-	public boolean overscan()
+	
+	@Override
+	public void write1bit(int address, boolean data)
 	{
-		return display.overscan;
-	}
-
-	public boolean hires()
-	{
-		return display.hires;
+		switch (address)
+		{
+		case 29:
+			if (display.latch != 0 && data == false)
+			{
+				latch_counters();
+			}
+			display.latch = data ? 1 : 0;
+			break;
+		}
 	}
 
 	@Override
@@ -306,6 +315,10 @@ public class PPU implements Hardware, Clockable, Bus8bit, BusDMA, Configurable
 		window = new Window(this);
 		screen = new Screen(this);
 		output = ByteBuffer.allocate(1024 * 1024 * 2);
+		
+		display = new Display();
+		display.latch = 1;
+		display.hires = true;
 
 		power();
 	}

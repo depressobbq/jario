@@ -1,7 +1,5 @@
 package jario.snes.performance.dsp;
 
-import jario.hardware.Bus8bit;
-
 public class SPCDSP
 {
 	// Setup
@@ -13,7 +11,7 @@ public class SPCDSP
 	}
 
 	// Initializes DSP and has it use the 64K RAM provided
-	public void init(Bus8bit ram_64k)
+	public void init(byte[] ram_64k)
 	{
 		m.ram = ram_64k;
 		mute_voices(0);
@@ -543,7 +541,7 @@ public class SPCDSP
 	private void decode_brr(Voice v)
 	{
 		// Arrange the four input nybbles in 0xABCD order for easy decoding
-		int nybbles = m.t_brr_byte * 0x100 + (m.ram.read8bit((v.brr_addr + v.brr_offset + 1) & 0xFFFF) & 0xFF);
+		int nybbles = m.t_brr_byte * 0x100 + (m.ram[(v.brr_addr + v.brr_offset + 1) & 0xFFFF] & 0xFF);
 
 		int header = m.t_brr_header;
 
@@ -671,8 +669,8 @@ public class SPCDSP
 		{
 			entry += 2;
 		}
-		int lo = m.ram.read8bit(entry + 0) & 0xFF;
-		int hi = m.ram.read8bit(entry + 1) & 0xFF;
+		int lo = m.ram[entry + 0] & 0xFF;
+		int hi = m.ram[entry + 1] & 0xFF;
 		m.t_brr_next_addr = ((hi << 8) + lo);
 
 		m.t_adsr0 = v.regs[v.r + VoiceReg_adsr0] & 0xFF;
@@ -695,8 +693,8 @@ public class SPCDSP
 
 	private void voice_V3b(Voice v)
 	{ // Read BRR header and byte
-		m.t_brr_byte = m.ram.read8bit((v.brr_addr + v.brr_offset) & 0xFFFF) & 0xFF;
-		m.t_brr_header = m.ram.read8bit(v.brr_addr) & 0xFF; // brr_addr doesn't need masking
+		m.t_brr_byte = m.ram[(v.brr_addr + v.brr_offset) & 0xFFFF] & 0xFF;
+		m.t_brr_header = m.ram[v.brr_addr] & 0xFF; // brr_addr doesn't need masking
 	}
 
 	private void voice_V3c(Voice v)
@@ -871,8 +869,8 @@ public class SPCDSP
 
 	private void echo_read(int ch)
 	{
-		int lo = m.ram.read8bit(((m.t_echo_ptr + ch * 2) + 0) & 0xFFFF) & 0xFF;
-		int hi = m.ram.read8bit(((m.t_echo_ptr + ch * 2) + 1) & 0xFFFF) & 0xFF;
+		int lo = m.ram[((m.t_echo_ptr + ch * 2) + 0) & 0xFFFF] & 0xFF;
+		int hi = m.ram[((m.t_echo_ptr + ch * 2) + 1) & 0xFFFF] & 0xFF;
 		int s = (short) ((hi << 8) + lo);
 		// second copy simplifies wrap-around handling
 		m.echo_hist[m.echo_hist_pos + 0][ch] = m.echo_hist[m.echo_hist_pos + 8][ch] = s >> 1;
@@ -891,8 +889,8 @@ public class SPCDSP
 		if ((m.t_echo_enabled & 0x20) == 0)
 		{
 			int s = m.t_echo_out[ch];
-			m.ram.write8bit(((m.t_echo_ptr + ch * 2) + 0) & 0xFFFF, (byte) s);
-			m.ram.write8bit(((m.t_echo_ptr + ch * 2) + 1) & 0xFFFF, (byte) (s >> 8));
+			m.ram[((m.t_echo_ptr + ch * 2) + 0) & 0xFFFF] = (byte) s;
+			m.ram[((m.t_echo_ptr + ch * 2) + 1) & 0xFFFF] = (byte) (s >> 8);
 		}
 		m.t_echo_out[ch] = 0;
 	}

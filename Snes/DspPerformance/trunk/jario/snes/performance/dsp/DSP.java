@@ -3,18 +3,34 @@ package jario.snes.performance.dsp;
 import jario.hardware.Bus32bit;
 import jario.hardware.Bus8bit;
 import jario.hardware.Clockable;
+import jario.hardware.Configurable;
 import jario.hardware.Hardware;
 
-public class DSP implements Hardware, Clockable, Bus8bit
+public class DSP implements Hardware, Clockable, Bus8bit, Configurable
 {
 	private long clock;
 
-	private Bus8bit ram;
+	private byte[] apuram = new byte[64 * 1024];
 	private Bus32bit output;
 
 	private SPCDSP spc_dsp = new SPCDSP();
 	private short[] samplebuffer = new short[8192];
 	boolean[] channel_enabled = new boolean[8];
+	
+	private Bus8bit sram = new Bus8bit()
+	{
+		@Override
+		public byte read8bit(int address)
+		{
+			return apuram[address];
+		}
+
+		@Override
+		public void write8bit(int address, byte data)
+		{
+			apuram[address] = data;
+		}
+	};
 
 	public DSP()
 	{
@@ -23,6 +39,7 @@ public class DSP implements Hardware, Clockable, Bus8bit
 			channel_enabled[i] = true;
 		}
 		clock = 0;
+		power();
 	}
 
 	@Override
@@ -31,10 +48,6 @@ public class DSP implements Hardware, Clockable, Bus8bit
 		switch (port)
 		{
 		case 0:
-			ram = (Bus8bit) hw;
-			power();
-			break;
-		case 1:
 			output = (Bus32bit) hw;
 			break;
 		}
@@ -80,10 +93,22 @@ public class DSP implements Hardware, Clockable, Bus8bit
 		spc_dsp.set_output(samplebuffer, 8192);
 		clock = 0;
 	}
+	
+	@Override
+	public Object readConfig(String key)
+	{
+		if (key.equalsIgnoreCase("SRAM")) return sram;
+		return null;
+	}
+
+	@Override
+	public void writeConfig(String key, Object value)
+	{
+	}
 
 	private void power()
 	{
-		spc_dsp.init(ram);
+		spc_dsp.init(apuram);
 		spc_dsp.reset();
 		spc_dsp.set_output(samplebuffer, 8192);
 	}

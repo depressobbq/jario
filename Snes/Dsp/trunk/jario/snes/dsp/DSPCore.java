@@ -1,12 +1,11 @@
 package jario.snes.dsp;
 
 import jario.hardware.Bus32bit;
-import jario.hardware.Bus8bit;
 import jario.hardware.Hardware;
 
 public abstract class DSPCore implements Hardware
 {
-	protected Bus8bit apuram;
+	protected byte[] apuram = new byte[64 * 1024];
 	protected Bus32bit audio;
 
 	interface DSPOp
@@ -606,7 +605,7 @@ public abstract class DSPCore implements Hardware
 	// brr
 	private final void brr_decode(Voice v)
 	{
-		int nybbles = (state.t_brr_byte << 8) + (apuram.read8bit((v.brr_addr + v.brr_offset + 1) & 0xFFFF) & 0xFF);
+		int nybbles = (state.t_brr_byte << 8) + (apuram[(v.brr_addr + v.brr_offset + 1) & 0xFFFF] & 0xFF);
 
 		int filter = (state.t_brr_header >> 2) & 3;
 		int scale = (state.t_brr_header >> 4);
@@ -752,8 +751,8 @@ public abstract class DSPCore implements Hardware
 		{
 			addr += 2;
 		}
-		int lo = apuram.read8bit((addr + 0)) & 0xFF;
-		int hi = apuram.read8bit((addr + 1)) & 0xFF;
+		int lo = apuram[addr + 0] & 0xFF;
+		int hi = apuram[addr + 1] & 0xFF;
 		state.t_brr_next_addr = ((hi << 8) + lo);
 
 		state.t_adsr0 = state.regs[v.vidx + VoiceReg_adsr0] & 0xFF;
@@ -776,8 +775,8 @@ public abstract class DSPCore implements Hardware
 
 	private final void voice_3b(Voice v)
 	{
-		state.t_brr_byte = apuram.read8bit((v.brr_addr + v.brr_offset) & 0xFFFF) & 0xFF;
-		state.t_brr_header = apuram.read8bit((v.brr_addr) & 0xFFFF) & 0xFF;
+		state.t_brr_byte = apuram[(v.brr_addr + v.brr_offset) & 0xFFFF] & 0xFF;
+		state.t_brr_header = apuram[(v.brr_addr) & 0xFFFF] & 0xFF;
 	}
 
 	private final void voice_3c(Voice v)
@@ -946,8 +945,8 @@ public abstract class DSPCore implements Hardware
 	{
 		int channel = ch ? 1 : 0;
 		int addr = (state.t_echo_ptr + channel * 2);
-		int lo = apuram.read8bit((addr + 0) & 0xFFFF) & 0xFF;
-		int hi = apuram.read8bit((addr + 1) & 0xFFFF) & 0xFF;
+		int lo = apuram[(addr + 0) & 0xFFFF] & 0xFF;
+		int hi = apuram[(addr + 1) & 0xFFFF] & 0xFF;
 		int s = (short) ((hi << 8) + lo);
 		state.echo_hist[channel].write(state.echo_hist_pos, s >> 1);
 	}
@@ -959,8 +958,8 @@ public abstract class DSPCore implements Hardware
 		{
 			int addr = (state.t_echo_ptr + channel * 2);
 			int s = state.t_echo_out[channel];
-			apuram.write8bit((addr + 0) & 0xFFFF, (byte) (s & 0xFF));
-			apuram.write8bit((addr + 1) & 0xFFFF, (byte) ((s >> 8) & 0xFF));
+			apuram[(addr + 0) & 0xFFFF] = (byte) (s & 0xFF);
+			apuram[(addr + 1) & 0xFFFF] = (byte) ((s >> 8) & 0xFF);
 		}
 
 		state.t_echo_out[channel] = 0;

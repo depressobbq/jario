@@ -22,7 +22,6 @@ public class SMP extends SMPCore implements Hardware, Clockable, Bus8bit, Config
 		t0 = new SMPTimer(192, this);
 		t1 = new SMPTimer(192, this);
 		t2 = new SMPTimer(24, this);
-
 		power();
 	}
 
@@ -32,14 +31,11 @@ public class SMP extends SMPCore implements Hardware, Clockable, Bus8bit, Config
 		switch (port)
 		{
 		case 0:
-			apuram = (Bus8bit) hw;
-			power();
-			break;
-		case 1:
 			dsp_bus = (Bus8bit) hw;
 			dsp_clk = (Clockable) hw;
+			apuram = (Bus8bit) ((Configurable) hw).readConfig("SRAM");
 			break;
-		case 2:
+		case 1:
 			cpu_bus = (Bus8bit) ((Configurable) hw).readConfig("BUS B");
 			break;
 		}
@@ -81,7 +77,10 @@ public class SMP extends SMPCore implements Hardware, Clockable, Bus8bit, Config
 
 		if (apuram != null)
 		{
-			((Hardware) apuram).reset();
+			for (int i = 0; i < 64 * 1024; i++)
+			{
+				apuram.write8bit(i, (byte) 0);
+			}
 		}
 
 		status.clock_counter = 0;

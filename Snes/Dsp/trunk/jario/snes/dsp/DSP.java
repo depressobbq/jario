@@ -3,11 +3,27 @@ package jario.snes.dsp;
 import jario.hardware.Bus32bit;
 import jario.hardware.Bus8bit;
 import jario.hardware.Clockable;
+import jario.hardware.Configurable;
 import jario.hardware.Hardware;
 
-public class DSP extends DSPCore implements Clockable, Bus8bit
+public class DSP extends DSPCore implements Clockable, Bus8bit, Configurable
 {
 	private long clock;
+	
+	private Bus8bit sram = new Bus8bit()
+	{
+		@Override
+		public byte read8bit(int address)
+		{
+			return apuram[address];
+		}
+
+		@Override
+		public void write8bit(int address, byte data)
+		{
+			apuram[address] = data;
+		}
+	};
 
 	public DSP()
 	{
@@ -24,10 +40,6 @@ public class DSP extends DSPCore implements Clockable, Bus8bit
 		switch (port)
 		{
 		case 0:
-			apuram = (Bus8bit) hw;
-			power();
-			break;
-		case 1:
 			audio = (Bus32bit) hw;
 			break;
 		}
@@ -88,6 +100,18 @@ public class DSP extends DSPCore implements Clockable, Bus8bit
 		state.every_other_sample = true;
 		state.echo_offset = 0;
 		state.counter = 0;
+	}
+	
+	@Override
+	public Object readConfig(String key)
+	{
+		if (key.equalsIgnoreCase("SRAM")) return sram;
+		return null;
+	}
+
+	@Override
+	public void writeConfig(String key, Object value)
+	{
 	}
 
 	private void power()
