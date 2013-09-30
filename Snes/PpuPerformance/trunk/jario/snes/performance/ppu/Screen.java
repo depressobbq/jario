@@ -130,9 +130,9 @@ public class Screen
 	public void render_black()
 	{
 		byte[] data = self.output.array();
-		int data_offset = (self.PPUCounter.vcounter() * 1024) << 1;
+		int data_offset = (self.ppuCounter.vcounter() * 1024) << 1;
 
-		if (self.interlace() && self.PPUCounter.field())
+		if (self.interlace() && self.ppuCounter.field())
 		{
 			data_offset += (512 << 1);
 		}
@@ -209,9 +209,9 @@ public class Screen
 	public void render()
 	{
 		ShortBuffer data = self.output.asShortBuffer();
-		int data_offset = self.PPUCounter.vcounter() * 1024;
+		int data_offset = self.ppuCounter.vcounter() * 1024;
 
-		if (self.interlace() && self.PPUCounter.field())
+		if (self.interlace() && self.ppuCounter.field())
 		{
 			data_offset += 512;
 		}

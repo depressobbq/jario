@@ -74,12 +74,12 @@ public class Background
 	{
 		boolean hires = (self.regs.bgmode == 5 || self.regs.bgmode == 6);
 		x = -7;
-		y = self.counter.status.vcounter;
+		y = self.counter.vcounter();
 		tile_counter = (7 - (hoffset & 7)) << (hires ? 1 : 0);
 		for (int n = 0; n < 8; n++)
 			data[n] = 0;
 
-		if (self.counter.status.vcounter == 1)
+		if (self.counter.vcounter() == 1)
 		{
 			mosaic_vcounter = mosaic + 1;
 			mosaic_voffset = 1;
@@ -212,7 +212,7 @@ public class Background
 			hscroll <<= 1;
 			if (self.regs.interlace)
 			{
-				py = (py << 1) + (self.counter.status.field ? 1 : 0);
+				py = (py << 1) + (self.counter.field() ? 1 : 0);
 			}
 		}
 

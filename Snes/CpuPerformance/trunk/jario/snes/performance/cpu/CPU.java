@@ -10,6 +10,11 @@ import jario.snes.performance.cpu.PriorityQueue.Callback;
 
 public class CPU extends CPUCore implements Hardware, Clockable, Bus8bit, Configurable
 {
+	public static final int NTSC = 0;
+	public static final int PAL = 1;
+
+	private int region;
+	
 	static CPU cpu;
 
 	protected Bus8bit bus;
@@ -35,7 +40,7 @@ public class CPU extends CPUCore implements Hardware, Clockable, Bus8bit, Config
 	int[] port_data = new int[4];
 	Channel[] channel = new Channel[8];
 	Status status = new BusB();
-	Bus32bit PPUCounter;
+	HVCounter counter = new HVCounter();
 
 	public CPU()
 	{
@@ -43,6 +48,7 @@ public class CPU extends CPUCore implements Hardware, Clockable, Bus8bit, Config
 		for (int i = 0; i < channel.length; i++) channel[i] = new Channel();
 		queue = new PriorityQueue(512, this.queue_event);
 		dma = new DMA(this);
+		counter.scanline = this.scanline;
 		power();
 	}
 
@@ -62,15 +68,12 @@ public class CPU extends CPUCore implements Hardware, Clockable, Bus8bit, Config
 			input_port = (Bus8bit) hw;
 			break;
 		case 3:
-			PPUCounter = (Bus32bit) hw;
-			((Configurable) PPUCounter).writeConfig("scanline", this.scanline);
-			break;
-		case 4:
 			video = (Bus32bit) hw;
 			break;
-		case 5:
+		case 4:
 			ppu_clk = (Clockable) hw;
 			ppu1bit = (Bus1bit) hw;
+			counter.ppu1bit = ppu1bit;
 			break;
 		}
 	}
@@ -102,10 +105,7 @@ public class CPU extends CPUCore implements Hardware, Clockable, Bus8bit, Config
 		smpClocks = 0;
 
 		// coprocessors.Clear();
-		if (PPUCounter != null)
-		{
-			((Hardware) PPUCounter).reset();
-		}
+		counter.reset();
 
 		regs.pc.set(0x000000);
 		regs.x.h(0x00);
@@ -214,15 +214,15 @@ public class CPU extends CPUCore implements Hardware, Clockable, Bus8bit, Config
 			int result = (regs.mdr & 0x3e);
 			int vbstart = !ppu1bit.read1bit(1) ? 225 : 240;
 
-			if (PPUCounter.read32bit(0) >= vbstart && PPUCounter.read32bit(0) <= vbstart + 2)
+			if (counter.vcounter() >= vbstart && counter.vcounter() <= vbstart + 2)
 			{
 				result |= 0x01;
 			}
-			if (PPUCounter.read32bit(1) <= 2 || PPUCounter.read32bit(1) >= 1096)
+			if (counter.hcounter() <= 2 || counter.hcounter() >= 1096)
 			{
 				result |= 0x40;
 			}
-			if (PPUCounter.read32bit(0) >= vbstart)
+			if (counter.vcounter() >= vbstart)
 			{
 				result |= 0x80;
 			}
@@ -535,7 +535,7 @@ public class CPU extends CPUCore implements Hardware, Clockable, Bus8bit, Config
 	@Override
 	public void writeConfig(String key, Object value)
 	{
-
+		if (key.equals("region")) region = counter.region = value.toString().equals("ntsc") ? NTSC : PAL;
 	}
 
 	@Override
@@ -678,12 +678,9 @@ public class CPU extends CPUCore implements Hardware, Clockable, Bus8bit, Config
 		{
 			if (status.virq_enabled)
 			{
-				int cpu_time = PPUCounter.read32bit(0) * 1364 + PPUCounter.read32bit(1);
+				int cpu_time = counter.vcounter() * 1364 + counter.hcounter();
 				int irq_time = status.vtime * 1364 + status.htime * 4;
-				// TODO: CPU needs region? Hardcoded to NTSC for now.
-				// int framelines = (System.system.region == System.Region.NTSC
-				// ? 262 : 312) + ((PPUCounter.read32bit(2) != 0) ? 1 : 0);
-				int framelines = 262 + ((PPUCounter.read32bit(2) != 0) ? 1 : 0);
+				int framelines = (region == NTSC ? 262 : 312) + (counter.field() ? 1 : 0);
 				if (cpu_time > irq_time)
 				{
 					irq_time += framelines * 1364;
@@ -698,12 +695,12 @@ public class CPU extends CPUCore implements Hardware, Clockable, Bus8bit, Config
 			else
 			{
 				int irq_time = status.htime * 4;
-				if (PPUCounter.read32bit(1) > irq_time)
+				if (counter.hcounter() > irq_time)
 				{
 					irq_time += 1364;
 				}
 				boolean irq_valid = status.irq_valid;
-				status.irq_valid = PPUCounter.read32bit(1) <= irq_time && PPUCounter.read32bit(1) + clocks > irq_time;
+				status.irq_valid = counter.hcounter() <= irq_time && counter.hcounter() + clocks > irq_time;
 				if (!irq_valid && status.irq_valid)
 				{
 					status.irq_line = true;
@@ -717,7 +714,7 @@ public class CPU extends CPUCore implements Hardware, Clockable, Bus8bit, Config
 		else if (status.virq_enabled)
 		{
 			boolean irq_valid = status.irq_valid;
-			status.irq_valid = PPUCounter.read32bit(0) == status.vtime;
+			status.irq_valid = counter.vcounter() == status.vtime;
 			if (!irq_valid && status.irq_valid)
 			{
 				status.irq_line = true;
@@ -732,7 +729,7 @@ public class CPU extends CPUCore implements Hardware, Clockable, Bus8bit, Config
 			status.irq_valid = false;
 		}
 
-		((Clockable) PPUCounter).clock(clocks);
+		counter.tick(clocks);
 		queue.tick(clocks);
 		step(clocks);
 	}
@@ -744,21 +741,21 @@ public class CPU extends CPUCore implements Hardware, Clockable, Bus8bit, Config
 			synchronize_smp();
 			// synchronize_ppu();
 			// synchronize_coprocessor();
-			video.write32bit(0, PPUCounter.read32bit(0));
-			if (PPUCounter.read32bit(0) == 241)
+			video.write32bit(0, counter.vcounter());
+			if (counter.vcounter() == 241)
 			{
 				((Clockable) input_port).clock(0L);
 				((Clockable) video).clock(0L);
 			}
 
-			if (PPUCounter.read32bit(0) == 0)
+			if (counter.vcounter() == 0)
 			{
 				dma.hdma_init();
 			}
 
 			queue.enqueue(534, QueueEvent_DramRefresh);
 
-			if (PPUCounter.read32bit(0) <= (!ppu1bit.read1bit(1) ? 224 : 239))
+			if (counter.vcounter() <= (!ppu1bit.read1bit(1) ? 224 : 239))
 			{
 				queue.enqueue(1104 + 8, QueueEvent_HdmaRun);
 			}
@@ -770,7 +767,7 @@ public class CPU extends CPUCore implements Hardware, Clockable, Bus8bit, Config
 			// }
 
 			boolean nmi_valid = status.nmi_valid;
-			status.nmi_valid = PPUCounter.read32bit(0) >= (!ppu1bit.read1bit(1) ? 225 : 240);
+			status.nmi_valid = counter.vcounter() >= (!ppu1bit.read1bit(1) ? 225 : 240);
 
 			if (!nmi_valid && status.nmi_valid)
 			{
@@ -785,7 +782,7 @@ public class CPU extends CPUCore implements Hardware, Clockable, Bus8bit, Config
 				status.nmi_line = false;
 			}
 
-			if (status.auto_joypad_poll_enabled && PPUCounter.read32bit(0) == (!ppu1bit.read1bit(1) ? 227 : 242))
+			if (status.auto_joypad_poll_enabled && counter.vcounter() == (!ppu1bit.read1bit(1) ? 227 : 242))
 			{
 				input_port.write8bit(1, (byte) 0); // poll
 				run_auto_joypad_poll();

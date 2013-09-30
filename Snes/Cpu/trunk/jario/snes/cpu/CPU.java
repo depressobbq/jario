@@ -11,6 +11,9 @@ import java.util.Arrays;
 
 public class CPU extends CPUCore implements Hardware, Clockable, Bus8bit, Configurable
 {
+	public static final int NTSC = 0;
+	public static final int PAL = 1;
+	
 	protected Bus8bit bus;
 	protected Clockable smp_clk;
 	protected Clockable ppu_clk;
@@ -32,8 +35,7 @@ public class CPU extends CPUCore implements Hardware, Clockable, Bus8bit, Config
 	private int cpu_version;
 	Status status = new BusB();
 	private ALU alu = new ALU();
-	Clockable counter_clk;
-	Bus32bit counter_bus;
+	HVCounter counter;
 
 	public CPU()
 	{
@@ -45,7 +47,10 @@ public class CPU extends CPUCore implements Hardware, Clockable, Bus8bit, Config
 		}
 
 		dma = new DMA(this);
-
+		
+		counter = new HVCounter();
+		counter.scanline = this.scanline;
+		
 		power();
 	}
 
@@ -65,17 +70,12 @@ public class CPU extends CPUCore implements Hardware, Clockable, Bus8bit, Config
 			input_bus = (Bus8bit) hw;
 			break;
 		case 3:
-			counter_clk = (Clockable) hw;
-			counter_bus = (Bus32bit) hw;
-			((Configurable) counter_bus).writeConfig("scanline", this.scanline);
-			hw.reset();
-			break;
-		case 4:
 			video_bus = (Bus32bit) hw;
 			break;
-		case 5:
+		case 4:
 			ppu_clk = (Clockable) hw;
 			ppu1bit = (Bus1bit) hw;
+			counter.ppu1bit = ppu1bit;
 			break;
 		}
 	}
@@ -93,8 +93,8 @@ public class CPU extends CPUCore implements Hardware, Clockable, Bus8bit, Config
 		{
 			if (ticks-- > 0)
 			{
-				counter_clk.clock(0L);
-				if ((counter_bus.read32bit(1) & 2) != 0)
+				counter.tick();
+				if ((counter.hcounter() & 2) != 0)
 				{
 					// Input.input.tick();
 					poll_interrupts();
@@ -102,7 +102,7 @@ public class CPU extends CPUCore implements Hardware, Clockable, Bus8bit, Config
 				smpClocks += 2;
 				ppu_clk.clock(2);
 
-				if (ticks == 0 && !status.dram_refreshed && counter_bus.read32bit(1) >= status.dram_refresh_position)
+				if (ticks == 0 && !status.dram_refreshed && counter.hcounter() >= status.dram_refresh_position)
 				{
 					status.dram_refreshed = true;
 					status.irq_lock = false;
@@ -173,10 +173,7 @@ public class CPU extends CPUCore implements Hardware, Clockable, Bus8bit, Config
 		smpClocks = 0;
 
 		// coprocessors.Clear();
-		if (counter_bus != null)
-		{
-			((Hardware) counter_bus).reset();
-		}
+		counter.reset();
 
 		// note: some registers are not fully reset by SNES
 		regs.pc.set(0x000000);
@@ -191,7 +188,7 @@ public class CPU extends CPUCore implements Hardware, Clockable, Bus8bit, Config
 		regs.wai = false;
 		update_table();
 
-		if (status != null && counter_bus != null)
+		if (status != null)
 		{
 			mmio_reset();
 			dma.dma_reset();
@@ -439,6 +436,7 @@ public class CPU extends CPUCore implements Hardware, Clockable, Bus8bit, Config
 	public void writeConfig(String key, Object value)
 	{
 		if (key.equals("cpu version")) cpu_version = (int) value;
+		if (key.equals("region")) counter.region = value.toString().equals("ntsc") ? NTSC : PAL;
 	}
 
 	@Override
@@ -601,15 +599,15 @@ public class CPU extends CPUCore implements Hardware, Clockable, Bus8bit, Config
 	{
 		int r = regs.mdr & 0x3e;
 		int vs = (!ppu1bit.read1bit(1) ? 225 : 240);
-		if (counter_bus.read32bit(0) >= vs && counter_bus.read32bit(0) <= (vs + 2))
+		if (counter.vcounter() >= vs && counter.vcounter() <= (vs + 2))
 		{
 			r |= 0x01; // auto joypad polling
 		}
-		if (counter_bus.read32bit(1) <= 2 || counter_bus.read32bit(1) >= 1096)
+		if (counter.hcounter() <= 2 || counter.hcounter() >= 1096)
 		{
 			r |= 0x40; // hblank
 		}
-		if (counter_bus.read32bit(0) >= vs)
+		if (counter.vcounter() >= vs)
 		{
 			r |= 0x80; // vblank
 		}
@@ -933,7 +931,7 @@ public class CPU extends CPUCore implements Hardware, Clockable, Bus8bit, Config
 
 	private int dma_counter()
 	{
-		return (status.dma_counter + counter_bus.read32bit(1)) & 7;
+		return (status.dma_counter + counter.hcounter()) & 7;
 	}
 
 	final void add_clocks(int clocks)
@@ -943,8 +941,8 @@ public class CPU extends CPUCore implements Hardware, Clockable, Bus8bit, Config
 
 		while ((ticks--) != 0)
 		{
-			counter_clk.clock(0L);
-			if ((counter_bus.read32bit(1) & 2) != 0)
+			counter.tick();
+			if ((counter.hcounter() & 2) != 0)
 			{
 				// Input.input.tick();
 				poll_interrupts();
@@ -952,7 +950,7 @@ public class CPU extends CPUCore implements Hardware, Clockable, Bus8bit, Config
 			smpClocks += 2;
 			ppu_clk.clock(2);
 		}
-		if (!status.dram_refreshed && counter_bus.read32bit(1) >= status.dram_refresh_position)
+		if (!status.dram_refreshed && counter.hcounter() >= status.dram_refresh_position)
 		{
 			status.dram_refreshed = true;
 			add_clocks(40);
@@ -964,7 +962,7 @@ public class CPU extends CPUCore implements Hardware, Clockable, Bus8bit, Config
 		public void run()
 		{
 			status.dma_counter = (status.dma_counter + status.line_clocks) & 7;
-			status.line_clocks = counter_bus.read32bit(4);
+			status.line_clocks = counter.lineclocks();
 
 			// forcefully sync S-CPU to other processors, in case chips are not
 			// communicating
@@ -972,14 +970,14 @@ public class CPU extends CPUCore implements Hardware, Clockable, Bus8bit, Config
 			// synchronize_smp();
 			// synchronize_coprocessor();
 
-			video_bus.write32bit(0, counter_bus.read32bit(0));
-			if (counter_bus.read32bit(0) == 241)
+			video_bus.write32bit(0, counter.vcounter());
+			if (counter.vcounter() == 241)
 			{
 				((Clockable) input_bus).clock(0L);
 				((Clockable) video_bus).clock(0L);
 			}
 
-			if (counter_bus.read32bit(0) == 0)
+			if (counter.vcounter() == 0)
 			{
 				// HDMA init triggers once every frame
 				status.hdma_init_position = (cpu_version == 1 ? 12 + 8 - dma_counter() : 12 + dma_counter());
@@ -994,13 +992,13 @@ public class CPU extends CPUCore implements Hardware, Clockable, Bus8bit, Config
 			status.dram_refreshed = false;
 
 			// HDMA triggers once every visible scanline
-			if (counter_bus.read32bit(0) <= (!ppu1bit.read1bit(1) ? 224 : 239))
+			if (counter.vcounter() <= (!ppu1bit.read1bit(1) ? 224 : 239))
 			{
 				status.hdma_position = 1104;
 				status.hdma_triggered = false;
 			}
 
-			if (status.auto_joypad_poll == true && counter_bus.read32bit(0) == (!ppu1bit.read1bit(1) ? 227 : 242))
+			if (status.auto_joypad_poll == true && counter.vcounter() == (!ppu1bit.read1bit(1) ? 227 : 242))
 			{
 				input_bus.write8bit(1, (byte) 0); // poll
 				run_auto_joypad_poll();
@@ -1083,7 +1081,7 @@ public class CPU extends CPUCore implements Hardware, Clockable, Bus8bit, Config
 			}
 		}
 
-		if (status.hdma_init_triggered == false && counter_bus.read32bit(1) >= status.hdma_init_position)
+		if (status.hdma_init_triggered == false && counter.hcounter() >= status.hdma_init_position)
 		{
 			status.hdma_init_triggered = true;
 			dma.hdma_init_reset();
@@ -1094,7 +1092,7 @@ public class CPU extends CPUCore implements Hardware, Clockable, Bus8bit, Config
 			}
 		}
 
-		if (status.hdma_triggered == false && counter_bus.read32bit(1) >= status.hdma_position)
+		if (status.hdma_triggered == false && counter.hcounter() >= status.hdma_position)
 		{
 			status.hdma_triggered = true;
 			if (dma.hdma_active_channels() != 0)
@@ -1117,7 +1115,7 @@ public class CPU extends CPUCore implements Hardware, Clockable, Bus8bit, Config
 	private void timing_reset()
 	{
 		status.clock_count = 0;
-		status.line_clocks = counter_bus.read32bit(4);
+		status.line_clocks = counter.lineclocks();
 
 		status.irq_lock = false;
 		status.dram_refresh_position = (cpu_version == 1 ? 530 : 538);
@@ -1165,7 +1163,7 @@ public class CPU extends CPUCore implements Hardware, Clockable, Bus8bit, Config
 		}
 
 		// NMI test
-		boolean nmi_valid = (counter_bus.read32bit(2048 + 2) >= (!ppu1bit.read1bit(1) ? 225 : 240));
+		boolean nmi_valid = (counter.vcounter(2) >= (!ppu1bit.read1bit(1) ? 225 : 240));
 		if (!status.nmi_valid && nmi_valid)
 		{
 			// 0->1 edge sensitive transition
@@ -1194,9 +1192,9 @@ public class CPU extends CPUCore implements Hardware, Clockable, Bus8bit, Config
 		if (irq_valid)
 		{
 			// IRQs cannot trigger on last dot of field
-			if ((status.virq_enabled && counter_bus.read32bit(2048 + 10) != status.virq_pos)
-					|| (status.hirq_enabled && counter_bus.read32bit(4096 + 10) != (status.hirq_pos + 1) * 4)
-					|| ((status.virq_pos != 0) && counter_bus.read32bit(2048 + 6) == 0)
+			if ((status.virq_enabled && counter.vcounter(10) != status.virq_pos)
+					|| (status.hirq_enabled && counter.hcounter(10) != (status.hirq_pos + 1) * 4)
+					|| ((status.virq_pos != 0) && counter.vcounter(6) == 0)
 			)
 			{
 				irq_valid = false;
