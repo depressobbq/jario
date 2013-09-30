@@ -104,8 +104,8 @@ public class Sprite
 		List s = list[sprite];
 		if (s.x > 256 && (s.x + s.width - 1) < 512) { return false; }
 		int height = (regs.interlace == false ? s.height : s.height >> 1);
-		if (self.PPUCounter.vcounter() >= s.y && self.PPUCounter.vcounter() < (s.y + height)) { return true; }
-		if ((s.y + height) >= 256 && self.PPUCounter.vcounter() < ((s.y + height) & 255)) { return true; }
+		if (self.ppuCounter.vcounter() >= s.y && self.ppuCounter.vcounter() < (s.y + height)) { return true; }
+		if ((s.y + height) >= 256 && self.ppuCounter.vcounter() < ((s.y + height) & 255)) { return true; }
 		return false;
 	}
 
@@ -172,7 +172,7 @@ public class Sprite
 			List s = list[itemlist[i]];
 			int tile_width = s.width >> 3;
 			int x = s.x;
-			int y = ((self.PPUCounter.vcounter() - s.y) & 0xff);
+			int y = ((self.ppuCounter.vcounter() - s.y) & 0xff);
 			if (regs.interlace)
 			{
 				y <<= 1;
@@ -192,7 +192,7 @@ public class Sprite
 
 			if (regs.interlace)
 			{
-				y = (s.vflip == false) ? (y + (self.PPUCounter.field() ? 1 : 0)) : (y - (self.PPUCounter.field() ? 1 : 0));
+				y = (s.vflip == false) ? (y + (self.ppuCounter.field() ? 1 : 0)) : (y - (self.ppuCounter.field() ? 1 : 0));
 			}
 
 			x &= 511;

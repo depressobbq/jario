@@ -20,7 +20,6 @@ public class Video implements Hardware, Clockable, Bus32bit, Configurable
 	private BusDMA output;
 	private BusDMA ppuDma;
 	private Bus1bit ppu1bit;
-	private Bus32bit counter_bus;
 	private Bus32bit audio;
 
 	private ExecutorService executor;
@@ -75,9 +74,6 @@ public class Video implements Hardware, Clockable, Bus32bit, Configurable
 			ppu1bit = (Bus1bit) hw;
 			break;
 		case 2:
-			counter_bus = (Bus32bit) hw;
-			break;
-		case 3:
 			audio = (Bus32bit) hw;
 			break;
 		}
@@ -96,7 +92,7 @@ public class Video implements Hardware, Clockable, Bus32bit, Configurable
 		ShortBuffer data = data_output.asShortBuffer();
 		int data_offset = 0;
 
-		if (ppu1bit.read1bit(0) && counter_bus.read32bit(2) != 0)
+		if (ppu1bit.read1bit(0) && ppu1bit.read1bit(3))
 		{
 			data_offset += 512;
 		}

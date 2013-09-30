@@ -12,6 +12,9 @@ import java.util.Arrays;
 
 public class PPU implements Hardware, Clockable, Bus1bit, Bus8bit, BusDMA, Configurable
 {
+	public static final int NTSC = 0;
+	public static final int PAL = 1;
+	
 	static class Output
 	{
 		static class Pixel
@@ -32,7 +35,7 @@ public class PPU implements Hardware, Clockable, Bus1bit, Bus8bit, BusDMA, Confi
 		}
 	}
 
-	static boolean pal;
+	private int region;
 
 	int[] vram;
 	int[] oamram;
@@ -49,20 +52,13 @@ public class PPU implements Hardware, Clockable, Bus1bit, Bus8bit, BusDMA, Confi
 	@Override
 	public void connect(int port, Hardware hw)
 	{
-		switch (port)
-		{
-		case 0:
-			counter = (PPUCounter) hw;
-			counter.reset();
-			break;
-		}
 	}
 
 	final void latch_counters()
 	{
 		// CPU.cpu.synchronize_ppu();
 		regs.hcounter = counter.hdot() & 0xFFFF;
-		regs.vcounter = counter.status.vcounter & 0xFFFF;
+		regs.vcounter = counter.vcounter() & 0xFFFF;
 		regs.counters_latched = true;
 	}
 	
@@ -74,7 +70,7 @@ public class PPU implements Hardware, Clockable, Bus1bit, Bus8bit, BusDMA, Confi
 		case 0: return display.interlace;
 		case 1: return display.overscan;
 		case 2: return display.hires;
-		case 3: return counter.status.field;
+		case 3: return counter.field();
 		default: return false;
 		}
 	}
@@ -126,9 +122,9 @@ public class PPU implements Hardware, Clockable, Bus1bit, Bus8bit, BusDMA, Confi
 					pc = 0;
 					break;
 				case 2:
-					if (counter.status.vcounter <= (!regs.overscan ? 224 : 239))
+					if (counter.vcounter() <= (!regs.overscan ? 224 : 239))
 					{
-						if (counter.status.vcounter != 0)
+						if (counter.vcounter() != 0)
 						{
 							bg1.run(true);
 							bg2.run(true);
@@ -176,7 +172,7 @@ public class PPU implements Hardware, Clockable, Bus1bit, Bus8bit, BusDMA, Confi
 					pc = 0;
 					break;
 				case 6:
-					if (counter.status.vcounter != 0)
+					if (counter.vcounter() != 0)
 					{
 						bg1.run(true);
 						bg2.run(true);
@@ -189,7 +185,7 @@ public class PPU implements Hardware, Clockable, Bus1bit, Bus8bit, BusDMA, Confi
 					pc = 0;
 					break;
 				case 7:
-					if (counter.status.vcounter != 0)
+					if (counter.vcounter() != 0)
 					{
 						bg1.run(false);
 						bg2.run(false);
@@ -221,11 +217,11 @@ public class PPU implements Hardware, Clockable, Bus1bit, Bus8bit, BusDMA, Confi
 				scanline();
 				add_clocks(60);
 
-				if (counter.status.vcounter <= (!regs.overscan ? 224 : 239))
+				if (counter.vcounter() <= (!regs.overscan ? 224 : 239))
 				{
 					for (int pixel = -7; pixel <= 255; pixel++)
 					{
-						if (counter.status.vcounter != 0)
+						if (counter.vcounter() != 0)
 						{
 							bg1.run(true);
 							bg2.run(true);
@@ -234,7 +230,7 @@ public class PPU implements Hardware, Clockable, Bus1bit, Bus8bit, BusDMA, Confi
 						}
 						add_clocks(2);
 
-						if (counter.status.vcounter != 0)
+						if (counter.vcounter() != 0)
 						{
 							bg1.run(false);
 							bg2.run(false);
@@ -319,6 +315,8 @@ public class PPU implements Hardware, Clockable, Bus1bit, Bus8bit, BusDMA, Confi
 		display = new Display();
 		display.latch = 1;
 		display.hires = true;
+		
+		counter = new HVCounter(this);
 
 		power();
 	}
@@ -347,13 +345,13 @@ public class PPU implements Hardware, Clockable, Bus1bit, Bus8bit, BusDMA, Confi
 
 	private int vram_read(int addr)
 	{
-		if (regs.display_disable || counter.status.vcounter >= (!regs.overscan ? 225 : 240)) { return vram[addr]; }
+		if (regs.display_disable || counter.vcounter() >= (!regs.overscan ? 225 : 240)) { return vram[addr]; }
 		return 0x00;
 	}
 
 	private void vram_write(int addr, int data)
 	{
-		if (regs.display_disable || counter.status.vcounter >= (!regs.overscan ? 225 : 240))
+		if (regs.display_disable || counter.vcounter() >= (!regs.overscan ? 225 : 240))
 		{
 			vram[addr] = data & 0xFF;
 		}
@@ -532,7 +530,7 @@ public class PPU implements Hardware, Clockable, Bus1bit, Bus8bit, BusDMA, Confi
 
 	private void mmio_w2100(int data)
 	{
-		if (regs.display_disable && counter.status.vcounter == (!regs.overscan ? 225 : 240))
+		if (regs.display_disable && counter.vcounter() == (!regs.overscan ? 225 : 240))
 		{
 			sprite.address_reset();
 		}
@@ -565,7 +563,7 @@ public class PPU implements Hardware, Clockable, Bus1bit, Bus8bit, BusDMA, Confi
 		boolean latch = (regs.oam_addr & 1) != 0;
 		int addr = regs.oam_addr;
 		regs.oam_addr = (regs.oam_addr + 1) & 0x3FF;
-		if (regs.display_disable == false && counter.status.vcounter < (!regs.overscan ? 225 : 240))
+		if (regs.display_disable == false && counter.vcounter() < (!regs.overscan ? 225 : 240))
 		{
 			addr = regs.oam_iaddr & 0x3FF;
 		}
@@ -812,7 +810,7 @@ public class PPU implements Hardware, Clockable, Bus1bit, Bus8bit, BusDMA, Confi
 		boolean latch = (regs.cgram_addr & 1) != 0;
 		int addr = regs.cgram_addr;
 		regs.cgram_addr = (regs.cgram_addr + 1) & 0x1FF;
-		if (regs.display_disable == false && counter.status.vcounter > 0 && counter.status.vcounter < (!regs.overscan ? 225 : 240) && counter.status.hcounter >= 88 && counter.status.hcounter < 1096)
+		if (regs.display_disable == false && counter.vcounter() > 0 && counter.vcounter() < (!regs.overscan ? 225 : 240) && counter.hcounter() >= 88 && counter.hcounter() < 1096)
 		{
 			addr = regs.cgram_iaddr & 0x1FF;
 		}
@@ -1014,7 +1012,7 @@ public class PPU implements Hardware, Clockable, Bus1bit, Bus8bit, BusDMA, Confi
 	{
 		int addr = regs.oam_addr;
 		regs.oam_addr = (regs.oam_addr + 1) & 0x3FF;
-		if (regs.display_disable == false && counter.status.vcounter < (!regs.overscan ? 225 : 240))
+		if (regs.display_disable == false && counter.vcounter() < (!regs.overscan ? 225 : 240))
 		{
 			addr = regs.oam_iaddr & 0x3FF;
 		}
@@ -1061,7 +1059,7 @@ public class PPU implements Hardware, Clockable, Bus1bit, Bus8bit, BusDMA, Confi
 		boolean latch = (regs.cgram_addr & 1) != 0;
 		int addr = regs.cgram_addr++;
 		regs.cgram_addr &= 0x1FF;
-		if (regs.display_disable == false && counter.status.vcounter > 0 && counter.status.vcounter < (!regs.overscan ? 225 : 240) && counter.status.hcounter >= 88 && counter.status.hcounter < 1096)
+		if (regs.display_disable == false && counter.vcounter() > 0 && counter.vcounter() < (!regs.overscan ? 225 : 240) && counter.hcounter() >= 88 && counter.hcounter() < 1096)
 		{
 			addr = regs.cgram_iaddr;
 		}
@@ -1123,7 +1121,7 @@ public class PPU implements Hardware, Clockable, Bus1bit, Bus8bit, BusDMA, Confi
 		regs.latch_vcounter = false;
 
 		regs.ppu2_mdr &= 0x20;
-		regs.ppu2_mdr |= ((counter.status.field ? 1 : 0) << 7);
+		regs.ppu2_mdr |= ((counter.field() ? 1 : 0) << 7);
 		if (display.latch == 0)
 		{
 			regs.ppu2_mdr |= 0x40;
@@ -1133,7 +1131,7 @@ public class PPU implements Hardware, Clockable, Bus1bit, Bus8bit, BusDMA, Confi
 			regs.ppu2_mdr |= 0x40;
 			regs.counters_latched = false;
 		}
-		regs.ppu2_mdr |= ((!pal ? 0 : 1) << 4);
+		regs.ppu2_mdr |= ((region == NTSC ? 0 : 1) << 4);
 		regs.ppu2_mdr |= (ppu2_version & 0x0f);
 		return regs.ppu2_mdr;
 	} // STAT78
@@ -1453,7 +1451,7 @@ public class PPU implements Hardware, Clockable, Bus1bit, Bus8bit, BusDMA, Confi
 
 	private final void scanline()
 	{
-		if (counter.status.vcounter == 0)
+		if (counter.vcounter() == 0)
 		{
 			frame();
 			// bg1.frame();
@@ -1497,8 +1495,7 @@ public class PPU implements Hardware, Clockable, Bus1bit, Bus8bit, BusDMA, Confi
 		switch (key)
 		{
 		case "region":
-			pal = !value.toString().equals("ntsc");
-			((Configurable) counter).writeConfig("region", value);
+			region = counter.region = value.toString().equals("ntsc") ? NTSC : PAL;
 			break;
 		case "ppu1 version":
 			ppu1_version = (int) value;
@@ -1512,7 +1509,7 @@ public class PPU implements Hardware, Clockable, Bus1bit, Bus8bit, BusDMA, Confi
 		}
 	}
 
-	PPUCounter counter;
+	HVCounter counter;
 
 	@Override
 	public void readDMA(int address, ByteBuffer data, int offset, int length)

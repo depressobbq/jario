@@ -131,7 +131,7 @@ public class Background
 
 	public void scanline()
 	{
-		if (self.PPUCounter.vcounter() == 1)
+		if (self.ppuCounter.vcounter() == 1)
 		{
 			mosaic_vcounter = regs.mosaic + 1;
 			mosaic_voffset = 1;
@@ -208,13 +208,13 @@ public class Background
 		hscroll = regs.hoffset;
 		vscroll = regs.voffset;
 
-		int y = (regs.mosaic == 0 ? self.PPUCounter.vcounter() : mosaic_voffset);
+		int y = (regs.mosaic == 0 ? self.ppuCounter.vcounter() : mosaic_voffset);
 		if (hires)
 		{
 			hscroll <<= 1;
 			if (self.regs.interlace)
 			{
-				y = (y << 1) + (self.PPUCounter.field() ? 1 : 0);
+				y = (y << 1) + (self.ppuCounter.field() ? 1 : 0);
 			}
 		}
 
@@ -341,7 +341,7 @@ public class Background
 		int hofs = sclip(13, self.regs.mode7_hoffset);
 		int vofs = sclip(13, self.regs.mode7_voffset);
 
-		int y = (self.regs.mode7_vflip == false ? self.PPUCounter.vcounter() : 255 - self.PPUCounter.vcounter());
+		int y = (self.regs.mode7_vflip == false ? self.ppuCounter.vcounter() : 255 - self.ppuCounter.vcounter());
 
 		int[] mosaic_x, mosaic_y;
 		if (id == ID_BG1)

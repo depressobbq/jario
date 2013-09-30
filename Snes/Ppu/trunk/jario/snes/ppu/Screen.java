@@ -27,8 +27,8 @@ public class Screen
 	public final void scanline()
 	{
 		output_data = self.output.asShortBuffer();
-		output_offset = self.counter.status.vcounter * 1024;
-		if (self.display.interlace && self.counter.status.field)
+		output_offset = self.counter.vcounter() * 1024;
+		if (self.display.interlace && self.counter.field())
 		{
 			output_offset += 512;
 		}

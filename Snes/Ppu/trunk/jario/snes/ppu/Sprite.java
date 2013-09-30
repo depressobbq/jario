@@ -94,7 +94,7 @@ public class Sprite
 	public final void scanline()
 	{
 		t.x = 0;
-		t.y = self.counter.status.vcounter;
+		t.y = self.counter.vcounter();
 
 		t.item_count = 0;
 		t.tile_count = 0;
@@ -230,7 +230,7 @@ public class Sprite
 
 			if (interlace)
 			{
-				y = (sprite.vflip == false ? y + (self.counter.status.field ? 1 : 0) : y - (self.counter.status.field ? 1 : 0));
+				y = (sprite.vflip == false ? y + (self.counter.field() ? 1 : 0) : y - (self.counter.field() ? 1 : 0));
 			}
 
 			x &= 511;
@@ -339,7 +339,7 @@ public class Sprite
 
 			if (interlace)
 			{
-				y = (sprite.vflip == false ? y + (self.counter.status.field ? 1 : 0) : y - (self.counter.status.field ? 1 : 0));
+				y = (sprite.vflip == false ? y + (self.counter.field() ? 1 : 0) : y - (self.counter.field() ? 1 : 0));
 			}
 
 			x &= 511;

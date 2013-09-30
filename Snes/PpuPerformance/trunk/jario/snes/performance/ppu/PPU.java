@@ -27,32 +27,22 @@ public class PPU implements Hardware, Clockable, Bus1bit, Bus8bit, BusDMA, Confi
 	@Override
 	public void connect(int port, Hardware hw)
 	{
-		switch (port)
-		{
-		case 0:
-			PPUCounter = (PPUCounter) hw;
-			PPUCounter.reset();
-			break;
-		case 1:
-			cpuPPUCounter = (PPUCounter) hw;
-			break;
-		}
 	}
 
-	public void step(int clocks)
+	private void step(int clocks)
 	{
 		clock += clocks;
 	}
 
-	public void synchronize_cpu()
+	private void synchronize_cpu()
 	{
 
 	}
 
-	public void latch_counters()
+	private void latch_counters()
 	{
-		regs.hcounter = cpuPPUCounter.hdot() & 0xFFFF;
-		regs.vcounter = cpuPPUCounter.vcounter() & 0xFFFF;
+		regs.hcounter = cpuCounter.hdot() & 0xFFFF;
+		regs.vcounter = cpuCounter.vcounter() & 0xFFFF;
 		regs.counters_latched = true;
 	}
 	
@@ -64,7 +54,7 @@ public class PPU implements Hardware, Clockable, Bus1bit, Bus8bit, BusDMA, Confi
 		case 0: return interlace();
 		case 1: return overscan();
 		case 2: return hires();
-		case 3: return PPUCounter.status.field;
+		case 3: return ppuCounter.field();
 		default: return false;
 		}
 	}
@@ -103,18 +93,19 @@ public class PPU implements Hardware, Clockable, Bus1bit, Bus8bit, BusDMA, Confi
 	public void clock(long clocks)
 	{
 		clock -= clocks;
+		cpuCounter.tick((int) clocks);
 		while (clock < 0L)
 		{
 			scanline();
-			if (PPUCounter.vcounter() < display.height && (PPUCounter.vcounter() != 0))
+			if (ppuCounter.vcounter() < display.height && (ppuCounter.vcounter() != 0))
 			{
 				add_clocks(512);
 				render_scanline();
-				add_clocks(PPUCounter.lineclocks() - 512);
+				add_clocks(ppuCounter.lineclocks() - 512);
 			}
 			else
 			{
-				add_clocks(PPUCounter.lineclocks());
+				add_clocks(ppuCounter.lineclocks());
 			}
 		}
 	}
@@ -131,10 +122,8 @@ public class PPU implements Hardware, Clockable, Bus1bit, Bus8bit, BusDMA, Confi
 	public void reset()
 	{
 		clock = 0;
-		if (PPUCounter != null)
-		{
-			PPUCounter.reset();
-		}
+		ppuCounter.reset();
+		cpuCounter.reset();
 		Arrays.fill(output.array(), (byte) 0);
 		mmio_reset();
 		if (display != null)
@@ -145,21 +134,21 @@ public class PPU implements Hardware, Clockable, Bus1bit, Bus8bit, BusDMA, Confi
 		}
 	}
 
-	public void scanline()
+	private void scanline()
 	{
 		display.width = !hires() ? 256 : 512;
 		display.height = !overscan() ? 225 : 240;
-		if (PPUCounter.vcounter() == 0)
+		if (ppuCounter.vcounter() == 0)
 		{
 			frame();
 		}
-		if (PPUCounter.vcounter() == display.height && regs.display_disable == false)
+		if (ppuCounter.vcounter() == display.height && regs.display_disable == false)
 		{
 			sprite.address_reset();
 		}
 	}
 
-	public void frame()
+	private void frame()
 	{
 		sprite.frame();
 		display.interlace = regs.interlace;
@@ -167,48 +156,48 @@ public class PPU implements Hardware, Clockable, Bus1bit, Bus8bit, BusDMA, Confi
 		// display.framecounter = display.frameskip == 0 ? 0 : (display.framecounter + 1) % display.frameskip;
 	}
 
-	public void layer_enable(int layer, int priority, boolean enable)
-	{
-		switch (layer * 4 + priority)
-		{
-		case 0:
-			bg1.priority0_enable = enable;
-			break;
-		case 1:
-			bg1.priority1_enable = enable;
-			break;
-		case 4:
-			bg2.priority0_enable = enable;
-			break;
-		case 5:
-			bg2.priority1_enable = enable;
-			break;
-		case 8:
-			bg3.priority0_enable = enable;
-			break;
-		case 9:
-			bg3.priority1_enable = enable;
-			break;
-		case 12:
-			bg4.priority0_enable = enable;
-			break;
-		case 13:
-			bg4.priority1_enable = enable;
-			break;
-		case 16:
-			sprite.priority0_enable = enable;
-			break;
-		case 17:
-			sprite.priority1_enable = enable;
-			break;
-		case 18:
-			sprite.priority2_enable = enable;
-			break;
-		case 19:
-			sprite.priority3_enable = enable;
-			break;
-		}
-	}
+//	public void layer_enable(int layer, int priority, boolean enable)
+//	{
+//		switch (layer * 4 + priority)
+//		{
+//		case 0:
+//			bg1.priority0_enable = enable;
+//			break;
+//		case 1:
+//			bg1.priority1_enable = enable;
+//			break;
+//		case 4:
+//			bg2.priority0_enable = enable;
+//			break;
+//		case 5:
+//			bg2.priority1_enable = enable;
+//			break;
+//		case 8:
+//			bg3.priority0_enable = enable;
+//			break;
+//		case 9:
+//			bg3.priority1_enable = enable;
+//			break;
+//		case 12:
+//			bg4.priority0_enable = enable;
+//			break;
+//		case 13:
+//			bg4.priority1_enable = enable;
+//			break;
+//		case 16:
+//			sprite.priority0_enable = enable;
+//			break;
+//		case 17:
+//			sprite.priority1_enable = enable;
+//			break;
+//		case 18:
+//			sprite.priority2_enable = enable;
+//			break;
+//		case 19:
+//			sprite.priority3_enable = enable;
+//			break;
+//		}
+//	}
 
 	// public void set_frameskip(int frameskip)
 	// {
@@ -237,6 +226,9 @@ public class PPU implements Hardware, Clockable, Bus1bit, Bus8bit, BusDMA, Confi
 		display.interlace = false;
 		display.overscan = false;
 		display.latch = 1;
+		
+		cpuCounter = new HVCounter(this);
+		ppuCounter = new HVCounter(this);
 
 		power();
 	}
@@ -267,13 +259,13 @@ public class PPU implements Hardware, Clockable, Bus1bit, Bus8bit, BusDMA, Confi
 	private int vram_read(int addr)
 	{
 		if (regs.display_disable) { return vram[addr] & 0xFF; }
-		if (cpuPPUCounter.vcounter() >= display.height) { return vram[addr] & 0xFF; }
+		if (cpuCounter.vcounter() >= display.height) { return vram[addr] & 0xFF; }
 		return 0x00;
 	}
 
 	private void vram_write(int addr, int data)
 	{
-		if (regs.display_disable || cpuPPUCounter.vcounter() >= display.height)
+		if (regs.display_disable || cpuCounter.vcounter() >= display.height)
 		{
 			vram[addr] = data & 0xFF;
 			cache.tilevalid[0][addr >> 4] = 0;
@@ -290,7 +282,7 @@ public class PPU implements Hardware, Clockable, Bus1bit, Bus8bit, BusDMA, Confi
 			addr &= 0x021f;
 		}
 		if (regs.display_disable) { return oam[addr] & 0xFF; }
-		if (cpuPPUCounter.vcounter() >= display.height) { return oam[addr] & 0xFF; }
+		if (cpuCounter.vcounter() >= display.height) { return oam[addr] & 0xFF; }
 		return oam[0x0218] & 0xFF;
 	}
 
@@ -300,7 +292,7 @@ public class PPU implements Hardware, Clockable, Bus1bit, Bus8bit, BusDMA, Confi
 		{
 			addr &= 0x021f;
 		}
-		if (!regs.display_disable && cpuPPUCounter.vcounter() < display.height)
+		if (!regs.display_disable && cpuCounter.vcounter() < display.height)
 		{
 			addr = 0x0218;
 		}
@@ -613,7 +605,7 @@ public class PPU implements Hardware, Clockable, Bus1bit, Bus8bit, BusDMA, Confi
 			regs.latch_vcounter = false;
 
 			regs.ppu2_mdr &= 0x20;
-			regs.ppu2_mdr |= ((cpuPPUCounter.field() ? 1 : 0) << 7);
+			regs.ppu2_mdr |= ((cpuCounter.field() ? 1 : 0) << 7);
 			if (display.latch == 0)
 			{
 				regs.ppu2_mdr |= 0x40;
@@ -643,7 +635,7 @@ public class PPU implements Hardware, Clockable, Bus1bit, Bus8bit, BusDMA, Confi
 		{
 		case 0x2100:
 		{ // INIDISP
-			if (regs.display_disable && cpuPPUCounter.vcounter() == display.height)
+			if (regs.display_disable && cpuCounter.vcounter() == display.height)
 			{
 				sprite.address_reset();
 			}
@@ -1295,7 +1287,7 @@ public class PPU implements Hardware, Clockable, Bus1bit, Bus8bit, BusDMA, Confi
 
 	private final void add_clocks(int clocks)
 	{
-		PPUCounter.tick(clocks);
+		ppuCounter.tick(clocks);
 		step(clocks);
 		synchronize_cpu();
 	}
@@ -1324,8 +1316,8 @@ public class PPU implements Hardware, Clockable, Bus1bit, Bus8bit, BusDMA, Confi
 		screen.render();
 	}
 
-	private PPUCounter cpuPPUCounter;
-	public PPUCounter PPUCounter;
+	private HVCounter cpuCounter;
+	HVCounter ppuCounter;
 
 	@Override
 	public void readDMA(int address, ByteBuffer data, int offset, int length)
@@ -1357,6 +1349,8 @@ public class PPU implements Hardware, Clockable, Bus1bit, Bus8bit, BusDMA, Confi
 		{
 		case "region":
 			region = value.toString().equals("ntsc") ? NTSC : PAL;
+			cpuCounter.region = region;
+			ppuCounter.region = region;
 			break;
 		}
 	}
