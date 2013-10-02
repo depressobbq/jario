@@ -1,3 +1,7 @@
+/**
+ * Copyright 2013 Jason LaDere
+ */
+
 package jario.snes;
 
 import java.io.File;
