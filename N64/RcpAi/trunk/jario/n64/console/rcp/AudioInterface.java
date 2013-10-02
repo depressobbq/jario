@@ -144,24 +144,24 @@ public class AudioInterface implements Hardware, Bus32bit
 			break;
 		case 4:
 			regAI[AI_DACRATE_REG] = value;
-			int frequency = 0;
 			int systemType = SYSTEM_NTSC;
 			if (dacrate != regAI[AI_DACRATE_REG])
 			{
 				dacrate = regAI[AI_DACRATE_REG];
+				float frequency = 0.0f;
 				switch (systemType)
 				{
 				case SYSTEM_NTSC:
-					frequency = 48681812 / (dacrate + 1);
+					frequency = 48681812.0f / (dacrate + 1);
 					break;
 				case SYSTEM_PAL:
-					frequency = 49656530 / (dacrate + 1);
+					frequency = 49656530.0f / (dacrate + 1);
 					break;
 				case SYSTEM_MPAL:
-					frequency = 48628316 / (dacrate + 1);
+					frequency = 48628316.0f / (dacrate + 1);
 					break;
 				}
-				SampleRate = frequency;
+				SampleRate = (int)(frequency * 1.04166667f); // * 1.04166667f to compensate for 62.5 fps
 				SegmentSize = 0; // Trash it... we need to redo the Frequency anyway...
 			}
 			break;
