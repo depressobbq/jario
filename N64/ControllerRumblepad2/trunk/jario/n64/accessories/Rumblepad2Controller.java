@@ -54,11 +54,11 @@ public class Rumblepad2Controller implements Hardware, BusDMA
 	private static final int B_BUTTON = 0;
 	private static final int L_TRIG = 4;
 	private static final int R_TRIG = 5;
-	private static final int Z_TRIG = 8;
-	private static final int U_CBUTTON = 3;
-	private static final int D_CBUTTON = 2;
-	private static final int L_CBUTTON = 6;
-	private static final int R_CBUTTON = 7;
+	private static final int Z_TRIG = 6;
+	private static final int U_CBUTTON = -1;
+	private static final int D_CBUTTON = -1;
+	private static final int L_CBUTTON = -1;
+	private static final int R_CBUTTON = -1;
 
 	private static final int A_BUTTON_VALUE = 0x80000000;
 	private static final int B_BUTTON_VALUE = 0x40000000;
@@ -117,8 +117,6 @@ public class Rumblepad2Controller implements Hardware, BusDMA
 
 	public Rumblepad2Controller()
 	{
-		System.out.println("Joypad init");
-
 		pakType = PAK_TYPE_NONE;
 	}
 
@@ -144,11 +142,11 @@ public class Rumblepad2Controller implements Hardware, BusDMA
 			{
 				float value = controller.getAxisValue(i - buttonCount);
 
-				if (value > 0.5f && value < 1.0f)
+				if (value > 0.2f && value <= 1.0f)
 				{
 					controllerButtons |= keys[3].value;
 				}
-				else if (value < -0.5f && value > -1.0f)
+				else if (value < -0.2f && value >= -1.0f)
 				{
 					controllerButtons |= keys[2].value;
 				}
@@ -162,11 +160,11 @@ public class Rumblepad2Controller implements Hardware, BusDMA
 			{
 				float value = controller.getAxisValue(i - buttonCount);
 
-				if (value > 0.5f && value < 1.0f)
+				if (value > 0.2f && value <= 1.0f)
 				{
 					controllerButtons |= keys[1].value;
 				}
-				else if (value < -0.5f && value > -1.0f)
+				else if (value < -0.2f && value >= -1.0f)
 				{
 					controllerButtons |= keys[0].value;
 				}
@@ -174,6 +172,42 @@ public class Rumblepad2Controller implements Hardware, BusDMA
 				{
 					controllerButtons &= ~keys[1].value;
 					controllerButtons &= ~keys[0].value;
+				}
+			}
+			if (controller.getAxisName(i - buttonCount).equals("Z Axis"))
+			{
+				float value = controller.getAxisValue(i - buttonCount);
+
+				if (value > 0.2f && value <= 1.0f)
+				{
+					controllerButtons |= keys[13].value;
+				}
+				else if (value < -0.2f && value >= -1.0f)
+				{
+					controllerButtons |= keys[12].value;
+				}
+				else
+				{
+					controllerButtons &= ~keys[13].value;
+					controllerButtons &= ~keys[12].value;
+				}
+			}
+			if (controller.getAxisName(i - buttonCount).equals("Z Rotation"))
+			{
+				float value = controller.getAxisValue(i - buttonCount);
+
+				if (value > 0.2f && value <= 1.0f)
+				{
+					controllerButtons |= keys[11].value;
+				}
+				else if (value < -0.2f && value >= -1.0f)
+				{
+					controllerButtons |= keys[10].value;
+				}
+				else
+				{
+					controllerButtons &= ~keys[11].value;
+					controllerButtons &= ~keys[10].value;
 				}
 			}
 		}
