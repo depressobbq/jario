@@ -30,6 +30,9 @@ import java.awt.Dimension;
 
 public class VideoInterface implements Hardware, Clockable, Bus32bit, Configurable
 {
+	private int FRAMES_PER_SECOND = 60;
+	private int SKIP_TICKS = 1000 / FRAMES_PER_SECOND;
+	
 	private static final int VI_STATUS_REG = 0;
 	private static final int VI_ORIGIN_REG = 1;
 	private static final int VI_WIDTH_REG = 2;
@@ -64,13 +67,15 @@ public class VideoInterface implements Hardware, Clockable, Bus32bit, Configurab
 	private int fbLenBytes;
 	private int[] regVI = new int[14];
 	private long lastFrame;
-	private long lastTime;
 	private long[] frames = new long[NUM_FRAMES];
 	private int currentFrame;
 	private long frequency;
 	private int oldViVsyncReg = 0;
 	private int viIntrTime = 500000;
 	private int viFieldNumber;
+	private long currentTime;
+	private long next_game_tick;
+	private long sleep_time;
 	private boolean frameLimit = true;
 
 	private Bus32bit mi;
@@ -324,13 +329,24 @@ public class VideoInterface implements Hardware, Clockable, Bus32bit, Configurab
 			mi.read32bit(0x04100034);
 		}
 
+		currentTime = System.currentTimeMillis();
 		if (frameLimit)
 		{
-			while (lastTime + 15L > System.currentTimeMillis())
+			next_game_tick += SKIP_TICKS;
+			sleep_time = next_game_tick - currentTime;
+			if (sleep_time >= 0)
 			{
+				try
+				{
+					Thread.sleep(sleep_time);
+				}
+				catch (InterruptedException e)
+				{
+					e.printStackTrace();
+				}
 			}
-			lastTime = System.currentTimeMillis();
 		}
+		next_game_tick = System.currentTimeMillis();
 
 		return viIntrTime;
 	}
