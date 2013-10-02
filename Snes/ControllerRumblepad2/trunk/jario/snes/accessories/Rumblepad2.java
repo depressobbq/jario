@@ -131,11 +131,11 @@ public class Rumblepad2 implements Hardware, Bus16bit
 			{
 				float value = controller.getAxisValue(i - buttonCount);
 
-				if (value > 0.5f && value < 1.0f)
+				if (value > 0.2f && value <= 1.0f)
 				{
 					keyboardState |= Joypad_Right;
 				}
-				else if (value < -0.5f && value > -1.0f)
+				else if (value < -0.2f && value >= -1.0f)
 				{
 					keyboardState |= Joypad_Left;
 				}
@@ -149,11 +149,11 @@ public class Rumblepad2 implements Hardware, Bus16bit
 			{
 				float value = controller.getAxisValue(i - buttonCount);
 
-				if (value > 0.5f && value < 1.0f)
+				if (value > 0.2f && value <= 1.0f)
 				{
 					keyboardState |= Joypad_Down;
 				}
-				else if (value < -0.5f && value > -1.0f)
+				else if (value < -0.2f && value >= -1.0f)
 				{
 					keyboardState |= Joypad_Up;
 				}
