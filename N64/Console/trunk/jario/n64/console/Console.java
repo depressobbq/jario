@@ -46,72 +46,23 @@ public class Console implements Hardware, Configurable
 	private static final int DAC_VIDEO_PORT = 0;
 	private static final int DAC_AUDIO_PORT = 1;
 
+	private static final int CPU_DATA_PORT = 4;
+	private static final int CPU_TIMING_PORT = 5;
 	private static final int CPU_CLOCK_REG = 33;
-
-	private Hardware rdram;
-	private Hardware pif;
-	private Hardware av;
-	private Hardware cartridge;
-	private Hardware[] controllers;
 	
-	private static final int CORE_DATA_PORT = 4;
-	private static final int CORE_TIMING_PORT = 5;
+	private static final int RCP_CART_PORT = 1;
+	private static final int RCP_PIF_PORT = 2;
+	private static final int RCP_MIPS_PORT = 3;
+	private static final int RCP_RDRAM_PORT = 4;
+	private static final int RCP_DAC_PORT = 6;
 
 	private Hardware cpu;
-
-	// RCP
-	private static final int CLK_TIMER0_PORT = 0;
-	private static final int CLK_TIMER1_PORT = 1;
-	private static final int CLK_TIMER2_PORT = 2;
-	private static final int CLK_TIMER3_PORT = 3;
-
-	private static final int SP_RDRAM_PORT = 0;
-	private static final int SP_MIPS_PORT = 1;
-	private static final int SP_DATA_PORT = 2;
-	private static final int SP_TIMING_PORT = 3;
-
-	private static final int MI_RDRAM_PORT = 0;
-	private static final int MI_SP_PORT = 1;
-	private static final int MI_DP_PORT = 2;
-	private static final int MI_CPU_PORT = 3;
-	private static final int MI_VI_PORT = 4;
-	private static final int MI_AI_PORT = 5;
-	private static final int MI_PI_PORT = 6;
-	private static final int MI_RI_PORT = 7;
-	private static final int MI_SI_PORT = 8;
-	private static final int MI_CART_PORT = 9;
-	private static final int MI_PIF_PORT = 10;
-
-	private static final int VI_RDRAM_PORT = 0;
-	private static final int VI_MIPS_PORT = 1;
-	private static final int VI_DATA_PORT = 2;
-	private static final int VI_TIMING_PORT = 3;
-
-	private static final int AI_RDRAM_PORT = 0;
-	private static final int AI_MIPS_PORT = 1;
-	private static final int AI_DATA_PORT = 2;
-	private static final int AI_TIMING_PORT = 3;
-
-	private static final int PI_RDRAM_PORT = 0;
-	private static final int PI_MIPS_PORT = 1;
-	private static final int PI_DATA_PORT = 2;
-	private static final int PI_TIMING_PORT = 3;
-
-	private static final int SI_RDRAM_PORT = 0;
-	private static final int SI_MIPS_PORT = 1;
-	private static final int SI_DATA_PORT = 2;
-	private static final int SI_TIMING_PORT = 3;
-
-	private Hardware timing;
-	private Hardware sp;
-	private Hardware dp;
-	private Hardware mi;
-	private Hardware vi;
-	private Hardware ai;
-	private Hardware pi;
-	private Hardware ri;
-	private Hardware si;
-	// end RCP
+	private Hardware rcp;
+	private Hardware rdram;
+	private Hardware pif;
+	private Hardware dac;
+	private Hardware cartridge;
+	private Hardware[] controllers;
 
 	public Console()
 	{
@@ -138,18 +89,10 @@ public class Console implements Hardware, Configurable
 			}
 
 			cpu = (Hardware) Class.forName(prop.getProperty("CPU", "CPU"), true, loader).newInstance();
-			timing = (Hardware) Class.forName(prop.getProperty("RCP_TIMER", "RCP_TIMER"), true, loader).newInstance();
-			sp = (Hardware) Class.forName(prop.getProperty("SIGNAL_PROCESSOR", "SIGNAL_PROCESSOR"), true, loader).newInstance();
-			dp = (Hardware) Class.forName(prop.getProperty("DISPLAY_PROCESSOR", "DISPLAY_PROCESSOR"), true, loader).newInstance();
-			mi = (Hardware) Class.forName(prop.getProperty("MIPS_INTERFACE", "MIPS_INTERFACE"), true, loader).newInstance();
-			vi = (Hardware) Class.forName(prop.getProperty("VIDEO_INTERFACE", "VIDEO_INTERFACE"), true, loader).newInstance();
-			ai = (Hardware) Class.forName(prop.getProperty("AUDIO_INTERFACE", "AUDIO_INTERFACE"), true, loader).newInstance();
-			pi = (Hardware) Class.forName(prop.getProperty("PARALLEL_INTERFACE", "PARALLEL_INTERFACE"), true, loader).newInstance();
-			ri = (Hardware) Class.forName(prop.getProperty("RDRAM_INTERFACE", "RDRAM_INTERFACE"), true, loader).newInstance();
-			si = (Hardware) Class.forName(prop.getProperty("SERIAL_INTERFACE", "SERIAL_INTERFACE"), true, loader).newInstance();
+			rcp = (Hardware) Class.forName(prop.getProperty("RCP", "RCP"), true, loader).newInstance();
 			rdram = (Hardware) Class.forName(prop.getProperty("RDRAM", "RDRAM"), true, loader).newInstance();
 			pif = (Hardware) Class.forName(prop.getProperty("PIF", "PIF"), true, loader).newInstance();
-			av = (Hardware) Class.forName(prop.getProperty("DAC", "DAC"), true, loader).newInstance();
+			dac = (Hardware) Class.forName(prop.getProperty("DAC", "DAC"), true, loader).newInstance();
 		}
 		catch (Exception e)
 		{
@@ -158,71 +101,15 @@ public class Console implements Hardware, Configurable
 			return;
 		}
 
-		cpu.connect(CORE_TIMING_PORT, null);
-		cpu.connect(CORE_DATA_PORT, null);
-
-		timing.connect(CLK_TIMER0_PORT, null);
-		timing.connect(CLK_TIMER1_PORT, si);
-		timing.connect(CLK_TIMER2_PORT, pi);
-		timing.connect(CLK_TIMER3_PORT, vi);
-
-		sp.connect(SP_RDRAM_PORT, null);
-		sp.connect(SP_MIPS_PORT, mi);
-		sp.connect(SP_DATA_PORT, dp);
-		sp.connect(SP_TIMING_PORT, null);
-
-		dp.connect(SP_RDRAM_PORT, null);
-		dp.connect(SP_MIPS_PORT, mi);
-		dp.connect(SP_DATA_PORT, vi);
-		dp.connect(SP_TIMING_PORT, null);
-
-		mi.connect(MI_SP_PORT, sp);
-		mi.connect(MI_DP_PORT, dp);
-		mi.connect(MI_CPU_PORT, null);
-		mi.connect(MI_VI_PORT, vi);
-		mi.connect(MI_AI_PORT, ai);
-		mi.connect(MI_PI_PORT, pi);
-		mi.connect(MI_RI_PORT, ri);
-		mi.connect(MI_SI_PORT, si);
-		mi.connect(MI_CART_PORT, null);
-		mi.connect(MI_RDRAM_PORT, null);
-		mi.connect(MI_PIF_PORT, null);
-
-		vi.connect(VI_RDRAM_PORT, null);
-		vi.connect(VI_MIPS_PORT, mi);
-		vi.connect(VI_DATA_PORT, null);
-		vi.connect(VI_TIMING_PORT, timing);
-
-		ai.connect(AI_RDRAM_PORT, null);
-		ai.connect(AI_MIPS_PORT, mi);
-		ai.connect(AI_DATA_PORT, null);
-		ai.connect(AI_TIMING_PORT, null);
-
-		pi.connect(PI_RDRAM_PORT, null);
-		pi.connect(PI_MIPS_PORT, mi);
-		pi.connect(PI_DATA_PORT, null);
-		pi.connect(PI_TIMING_PORT, timing);
-
-		si.connect(SI_RDRAM_PORT, null);
-		si.connect(SI_MIPS_PORT, mi);
-		si.connect(SI_DATA_PORT, null);
-		si.connect(SI_TIMING_PORT, timing);
-
-		cpu.connect(CORE_DATA_PORT, mi);
-		cpu.connect(CORE_TIMING_PORT, timing);
-		mi.connect(MI_PIF_PORT, pif);
-		si.connect(SI_DATA_PORT, pif);
-		mi.connect(MI_CPU_PORT, cpu);
-		sp.connect(SP_RDRAM_PORT, rdram);
-		dp.connect(SP_RDRAM_PORT, rdram);
-		mi.connect(MI_RDRAM_PORT, rdram);
-		vi.connect(VI_RDRAM_PORT, rdram);
-		ai.connect(AI_RDRAM_PORT, rdram);
-		pi.connect(PI_RDRAM_PORT, rdram);
-		si.connect(SI_RDRAM_PORT, rdram);
-		vi.connect(VI_DATA_PORT, av);
-		ai.connect(AI_DATA_PORT, av);
-		av.connect(6, rdram);
+		cpu.connect(CPU_DATA_PORT, (Hardware)((Configurable)rcp).readConfig("MIPS"));
+		cpu.connect(CPU_TIMING_PORT, (Hardware)((Configurable)rcp).readConfig("TIMER"));
+		
+		rcp.connect(RCP_PIF_PORT, pif);
+		rcp.connect(RCP_MIPS_PORT, cpu);
+		rcp.connect(RCP_RDRAM_PORT, rdram);
+		rcp.connect(RCP_DAC_PORT, dac);
+		
+		dac.connect(6, rdram);
 		controllers = new Hardware[4];
 	}
 
@@ -293,13 +180,10 @@ public class Console implements Hardware, Configurable
 				{
 					cartridge.reset();
 				}
-				resetCPU();
-				resetRCP();
+				cpu.reset();
+				rcp.reset();
 				pif.reset();
-				av.reset();
-
-				vi.reset();
-				ai.reset();
+				dac.reset();
 				break;
 			}
 
@@ -321,20 +205,17 @@ public class Console implements Hardware, Configurable
 
 			((Bus32bit) cpu).write32bit(CPU_CLOCK_REG, countPerOp);
 
-			runBIOS((Bus8bit) cartridge, (Bus32bit) mi, (Bus64bit) cpu);
+			runBIOS((Bus8bit) cartridge, (Bus32bit) ((Configurable) rcp).readConfig("MIPS"), (Bus64bit) cpu);
 
-			pi.connect(PI_DATA_PORT, bus);
-			mi.connect(MI_CART_PORT, bus);
-			vi.reset();
-			ai.reset();
+			rcp.connect(RCP_CART_PORT, bus);
 
 			((Clockable) cpu).clock(1L); // start cpu
 			break;
 		case 6: // video
-			av.connect(DAC_VIDEO_PORT, bus);
+			dac.connect(DAC_VIDEO_PORT, bus);
 			break;
 		case 7: // audio
-			av.connect(DAC_AUDIO_PORT, bus);
+			dac.connect(DAC_AUDIO_PORT, bus);
 			break;
 		case 8: // reserved a/v
 			break;
@@ -357,8 +238,8 @@ public class Console implements Hardware, Configurable
 	public Object readConfig(String key)
 	{
 		if (key.equals("instructioncache")) return ((Configurable) cpu).readConfig("instructioncache");
-		else if (key.equals("framelimit")) return ((Configurable) vi).readConfig("framelimit");
-		else if (key.equals("framebuffer")) return ((Configurable) vi).readConfig("framebuffer");
+		else if (key.equals("framelimit")) return ((Configurable) rcp).readConfig("framelimit");
+		else if (key.equals("framebuffer")) return ((Configurable) rcp).readConfig("framebuffer");
 		return null;
 	}
 
@@ -366,29 +247,11 @@ public class Console implements Hardware, Configurable
 	public void writeConfig(String key, Object value)
 	{
 		if (key.equals("instructioncache")) ((Configurable) cpu).writeConfig("instructioncache", value);
-		else if (key.equals("framelimit")) ((Configurable) vi).writeConfig("framelimit", value);
-		else if (key.equals("framebuffer")) ((Configurable) vi).writeConfig("framebuffer", value);
+		else if (key.equals("framelimit")) ((Configurable) rcp).writeConfig("framelimit", value);
+		else if (key.equals("framebuffer")) ((Configurable) rcp).writeConfig("framebuffer", value);
 	}
 
 	// Private Methods /////////////////////////////////////////////////////////
-
-	private void resetCPU()
-	{
-		cpu.reset();
-	}
-
-	private void resetRCP()
-	{
-		timing.reset();
-		sp.reset();
-		dp.reset();
-		mi.reset();
-		vi.reset();
-		ai.reset();
-		pi.reset();
-		ri.reset();
-		si.reset();
-	}
 
 	private void runBIOS(Bus8bit rom, Bus32bit mem, Bus64bit cpu)
 	{
@@ -596,5 +459,4 @@ public class Console implements Hardware, Configurable
 		}
 		System.out.printf("BIOS complete\n");
 	}
-
 }
