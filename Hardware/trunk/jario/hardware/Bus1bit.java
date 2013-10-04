@@ -1,7 +1,6 @@
 /**
- * Copyright 2013 Jason LaDere
- *
- * Component Plugin v1.1
+ * Fractal Component Plugin Spec v1.1
+ * by Jason LaDere (Jario)
  */
 
 package jario.hardware;
