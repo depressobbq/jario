@@ -20,14 +20,20 @@ import java.io.File;
 import java.io.IOException;
 import java.net.URL;
 import java.net.URLClassLoader;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Map;
 import java.util.Properties;
+import java.util.ServiceLoader;
 
+import javax.swing.ButtonGroup;
 import javax.swing.JCheckBoxMenuItem;
 import javax.swing.JFileChooser;
 import javax.swing.JFrame;
 import javax.swing.JMenu;
 import javax.swing.JMenuBar;
 import javax.swing.JMenuItem;
+import javax.swing.JRadioButtonMenuItem;
 import javax.swing.UIManager;
 import javax.swing.filechooser.FileFilter;
 
@@ -38,6 +44,7 @@ public class SnesSystem implements Hardware
 	private Hardware video;
 	private Hardware audio;
 	private Hardware controller;
+	private Map<String, Hardware> controllers = new HashMap<String, Hardware>();
 	private Hardware console;
 	private Hardware cartridge;
 
@@ -47,6 +54,7 @@ public class SnesSystem implements Hardware
 		public Jario64MenuBar()
 		{
 			add(makeFileMenu());
+			add(makeControllerMenu());
 			add(makeSettingsMenu());
 		}
 
@@ -145,6 +153,39 @@ public class SnesSystem implements Hardware
 
 			return settingsMenu;
 		}
+		
+		private JMenu makeControllerMenu()
+		{
+			JMenu controllerMenu = new JMenu();
+			controllerMenu.setText("Controller");
+			
+			ButtonGroup group = new ButtonGroup();
+			
+			for (Hardware hardware : controllers.values())
+			{
+				JRadioButtonMenuItem controllerOption = new JRadioButtonMenuItem(hardware.getClass().getSimpleName());
+				if (controller != null && hardware.getClass().getName().equals(controller.getClass().getName()))
+				{
+					controllerOption.setSelected(true);
+				}
+				controllerOption.addActionListener(new ActionListener()
+				{
+					public void actionPerformed(ActionEvent evt)
+					{
+						JRadioButtonMenuItem i = (JRadioButtonMenuItem) evt.getSource();
+						if (i.isSelected())
+						{
+							controller = controllers.get(i.getText());
+							console.connect(0, controller); // controller1
+						}
+					}
+				});
+				group.add(controllerOption);
+				controllerMenu.add(controllerOption);
+			}
+
+			return controllerMenu;
+		}
 	}
 
 	private WindowAdapter winListener = new WindowAdapter()
@@ -178,10 +219,22 @@ public class SnesSystem implements Hardware
 			catch (IOException e)
 			{
 			}
+			
+			ServiceLoader<Hardware> sl = ServiceLoader.load(Hardware.class, loader);
+			Iterator<Hardware> it = sl.iterator();
+			while (it.hasNext())
+			{
+				Hardware hardware = it.next();
+				controllers.put(hardware.getClass().getSimpleName(), hardware);
+				if (prop.getProperty("CONTROLLER", "CONTROLLER").equals(hardware.getClass().getName()))
+				{
+					controller = hardware;
+				}
+			}
 
 			video = (Hardware) Class.forName(prop.getProperty("VIDEO_PLAYER", "VIDEO_PLAYER"), true, loader).newInstance();
 			audio = (Hardware) Class.forName(prop.getProperty("AUDIO_PLAYER", "AUDIO_PLAYER"), true, loader).newInstance();
-			controller = (Hardware) Class.forName(prop.getProperty("CONTROLLER", "CONTROLLER"), true, loader).newInstance();
+			if (controller == null) controller = (Hardware) Class.forName(prop.getProperty("CONTROLLER", "CONTROLLER"), true, loader).newInstance();
 			console = (Hardware) Class.forName(prop.getProperty("CONSOLE", "CONSOLE"), true, loader).newInstance();
 			cartridge = (Hardware) Class.forName(prop.getProperty("CARTRIDGE", "CARTRIDGE"), true, loader).newInstance();
 		}
