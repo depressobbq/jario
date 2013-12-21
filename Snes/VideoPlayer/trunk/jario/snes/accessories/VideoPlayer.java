@@ -98,12 +98,10 @@ public class VideoPlayer implements Hardware, BusDMA, Configurable
 	@Override
 	public void writeConfig(String key, Object value)
 	{
-		switch (key)
+		if (key.equals("window"))
 		{
-		case "window":
 			window = (JFrame) value;
 			graphics = (Graphics2D) window.getContentPane().getComponent(0).getGraphics();
-			break;
 		}
 	}
 

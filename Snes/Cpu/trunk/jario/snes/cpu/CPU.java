@@ -442,7 +442,7 @@ public class CPU extends CPUCore implements Hardware, Clockable, Bus8bit, Config
 	@Override
 	public void writeConfig(String key, Object value)
 	{
-		if (key.equals("cpu version")) cpu_version = (int) value;
+		if (key.equals("cpu version")) cpu_version = (Integer) value;
 		if (key.equals("region")) counter.region = value.toString().equals("ntsc") ? NTSC : PAL;
 	}
 

@@ -86,9 +86,8 @@ public class Input implements Hardware, Clockable, Bus8bit
 				return (byte) (((input0.read16bit(portnumber * 4) & (1 << 0)) != 0) ? 1 : 0);
 			}
 		}
-		// case Device::Joypad
-		// case Multitap:
-		// {
+		case Multitap:
+		{
 		// //if (CPU.cpu.joylatch())
 		// if (joypad_strobe_latch)
 		// {
@@ -125,9 +124,9 @@ public class Input implements Hardware, Clockable, Bus8bit
 		//
 		// return (byte)((SnesSystem.system.getInterface().input_poll(portnumber, p.device.ordinal(), deviceindex0, deviceidx) << 0)
 		// | (SnesSystem.system.getInterface().input_poll(portnumber, p.device.ordinal(), deviceindex1, deviceidx) << 1));
-		// } //case Device::Multitap
-		// case Mouse:
-		// {
+		} //case Device::Multitap
+		case Mouse:
+		{
 		// if (p.counter0 >= 32)
 		// {
 		// return 1;
@@ -155,7 +154,7 @@ public class Input implements Hardware, Clockable, Bus8bit
 		// {
 		// default:
 		// case 0:
-		// return 0;
+		return 0;
 		// case 1:
 		// return 0;
 		// case 2:
@@ -223,9 +222,9 @@ public class Input implements Hardware, Clockable, Bus8bit
 		// case 31:
 		// return (byte)((position_x >> 0) & 1);
 		// }
-		// } //case Device::Mouse
-		// case SuperScope:
-		// {
+		} //case Device::Mouse
+		case SuperScope:
+		{
 		// if (portnumber == 0)
 		// {
 		// break; //Super Scope in port 1 not supported ...
@@ -303,12 +302,12 @@ public class Input implements Hardware, Clockable, Bus8bit
 		// case 7:
 		// return 0; //noise (1 = yes)
 		// default:
-		// return 0;
+		return 0;
 		// }
-		// } //case Device::SuperScope
-		// case Justifier:
-		// case Justifiers:
-		// {
+		} //case Device::SuperScope
+		case Justifier:
+		case Justifiers:
+		{
 		// if (portnumber == 0)
 		// {
 		// break; //Justifier in port 1 not supported ...
@@ -409,9 +408,10 @@ public class Input implements Hardware, Clockable, Bus8bit
 		// case 31:
 		// return 0;
 		// default:
-		// return 0;
+		return 0;
 		// }
-		// } //case Device::Justifier(s)
+		} //case Device::Justifier(s)
+		case None: return 0;
 		} // switch(p.device)
 
 		// no device connected
