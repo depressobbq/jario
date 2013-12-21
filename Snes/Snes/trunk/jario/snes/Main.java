@@ -38,7 +38,15 @@ public class Main
 
 			Class.forName(prop.getProperty("SYSTEM", "SYSTEM"), true, loader).newInstance();
 		}
-		catch (InstantiationException | IllegalAccessException | ClassNotFoundException e)
+		catch (InstantiationException e)
+		{
+			e.printStackTrace();
+		}
+		catch (IllegalAccessException e)
+		{
+			e.printStackTrace();
+		}
+		catch (ClassNotFoundException e)
 		{
 			e.printStackTrace();
 		}

@@ -117,23 +117,17 @@ public class Cartridge implements Hardware, Bus8bit, Configurable
 	@Override
 	public Object readConfig(String key)
 	{
-		switch (key)
-		{
-		case "region":
-			return region.name().toLowerCase();
-		}
+		if (key.equals("region")) return region.name().toLowerCase();
 		return null;
 	}
 
 	@Override
 	public void writeConfig(String key, Object value)
 	{
-		switch (key)
+		if (key.equals("romfile"))
 		{
-		case "romfile":
 			cartridgeName = value.toString();
 			loadDataFromRomFile();
-			break;
 		}
 	}
 

@@ -91,12 +91,7 @@ public class Bus implements Hardware, Bus8bit, Configurable
 	@Override
 	public void writeConfig(String key, Object value)
 	{
-		switch (key)
-		{
-		case "wram init value":
-			wram_init_value = (byte) value;
-			break;
-		}
+		if (key.equals("wram init value")) wram_init_value = (Byte) value;
 	}
 
 	private int mirror(int addr, int size)

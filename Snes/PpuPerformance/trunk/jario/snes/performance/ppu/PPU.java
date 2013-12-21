@@ -1340,25 +1340,18 @@ public class PPU implements Hardware, Clockable, Bus1bit, Bus8bit, BusDMA, Confi
 	@Override
 	public Object readConfig(String key)
 	{
-		switch (key)
-		{
-		case "accuracy":
-			return false;
-		default:
-			return null;
-		}
+		if (key.equals("accuracy")) return false;
+		return null;
 	}
 
 	@Override
 	public void writeConfig(String key, Object value)
 	{
-		switch (key)
+		if (key.equals("region"))
 		{
-		case "region":
 			region = value.toString().equals("ntsc") ? NTSC : PAL;
 			cpuCounter.region = region;
 			ppuCounter.region = region;
-			break;
 		}
 	}
 }

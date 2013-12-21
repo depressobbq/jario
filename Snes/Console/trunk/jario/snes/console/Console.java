@@ -84,7 +84,15 @@ public class Console implements Hardware, Clockable, Configurable
 			audio = (Hardware) Class.forName(prop.getProperty("DAC", "DAC"), true, loader).newInstance();
 			input = (Hardware) Class.forName(prop.getProperty("INPUT", "INPUT"), true, loader).newInstance();
 		}
-		catch (InstantiationException | IllegalAccessException | ClassNotFoundException e)
+		catch (InstantiationException e)
+		{
+			e.printStackTrace();
+		}
+		catch (IllegalAccessException e)
+		{
+			e.printStackTrace();
+		}
+		catch (ClassNotFoundException e)
 		{
 			e.printStackTrace();
 		}
@@ -187,29 +195,16 @@ public class Console implements Hardware, Clockable, Configurable
 	@Override
 	public Object readConfig(String key)
 	{
-		switch (key)
-		{
-		case "accuracy":
-			return ((Configurable) ppu).readConfig("accuracy");
-		case "fps":
-			return ((Configurable) video).readConfig("fps");
-		default:
-			return null;
-		}
+		if (key.equals("accuracy")) return ((Configurable) ppu).readConfig("accuracy");
+		else if (key.equals("fps")) return ((Configurable) video).readConfig("fps");
+		return null;
 	}
 
 	@Override
 	public void writeConfig(String key, Object value)
 	{
-		switch (key)
-		{
-		case "accuracy":
-			((Configurable) ppu).writeConfig("accuracy", value);
-			break;
-		case "fps":
-			((Configurable) video).writeConfig("fps", value);
-			break;
-		}
+		if (key.equals("accuracy")) ((Configurable) ppu).writeConfig("accuracy", value);
+		else if (key.equals("fps")) ((Configurable) video).writeConfig("fps", value);
 	}
 
 	private void insertCartridge()

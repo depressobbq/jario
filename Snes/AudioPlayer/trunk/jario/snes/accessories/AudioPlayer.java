@@ -67,27 +67,18 @@ public class AudioPlayer implements Hardware, BusDMA, Configurable
 	@Override
 	public Object readConfig(String key)
 	{
-		switch (key)
-		{
-		case "enable":
-			return enable;
-		default:
-			return null;
-		}
+		if (key.equals("enable")) return enable;
+		return null;
 	}
 
 	@Override
 	public void writeConfig(String key, Object value)
 	{
-		switch (key)
+		if (key.equals("enable")) enable = (Boolean) value;
+		else if (key.equals("samplerate"))
 		{
-		case "enable":
-			enable = (boolean) value;
-			break;
-		case "samplerate":
 			sampleRate = (Integer) value;
 			initAudio(sampleRate);
-			break;
 		}
 	}
 

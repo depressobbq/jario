@@ -119,7 +119,7 @@ public class SnesSystem implements Hardware
 			settingsMenu.setText("Settings");
 
 			JCheckBoxMenuItem audioToggle = new JCheckBoxMenuItem("Enable Audio");
-			audioToggle.setState((boolean) ((Configurable) audio).readConfig("enable"));
+			audioToggle.setState((Boolean) ((Configurable) audio).readConfig("enable"));
 			audioToggle.addActionListener(new ActionListener()
 			{
 				public void actionPerformed(ActionEvent evt)
@@ -238,7 +238,15 @@ public class SnesSystem implements Hardware
 			console = (Hardware) Class.forName(prop.getProperty("CONSOLE", "CONSOLE"), true, loader).newInstance();
 			cartridge = (Hardware) Class.forName(prop.getProperty("CARTRIDGE", "CARTRIDGE"), true, loader).newInstance();
 		}
-		catch (InstantiationException | IllegalAccessException | ClassNotFoundException e)
+		catch (InstantiationException e)
+		{
+			e.printStackTrace();
+		}
+		catch (IllegalAccessException e)
+		{
+			e.printStackTrace();
+		}
+		catch (ClassNotFoundException e)
 		{
 			e.printStackTrace();
 		}
