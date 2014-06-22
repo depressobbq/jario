@@ -7,11 +7,13 @@
 
 package jario.snes.memory;
 
+import jario.hardware.Bus8bit;
+import jario.hardware.Configurable;
 import jario.hardware.Hardware;
 
 import java.util.Arrays;
 
-public class StaticRAM extends Memory
+public class StaticRAM implements Hardware, Bus8bit, Configurable
 {
 	private byte[] data_;
 	private int size_;
@@ -34,12 +36,6 @@ public class StaticRAM extends Memory
 	}
 
 	@Override
-	public int size()
-	{
-		return size_;
-	}
-
-	@Override
 	public byte read8bit(int addr)
 	{
 		return data_[addr];
@@ -49,5 +45,17 @@ public class StaticRAM extends Memory
 	public void write8bit(int addr, byte n)
 	{
 		data_[addr] = n;
+	}
+
+	@Override
+	public Object readConfig(String key)
+	{
+		if (key.equals("size")) return size_;
+		return null;
+	}
+
+	@Override
+	public void writeConfig(String key, Object value)
+	{
 	}
 }

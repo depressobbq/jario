@@ -187,7 +187,7 @@ public class Rumblepad2 implements Hardware, Bus16bit
 	public short read16bit(int address)
 	{
 		SetInputState(0, 0, ParseInput(0), 0, 0);
-		return (short) inputButtons[address];
+		return (short) inputButtons[0];
 	}
 
 	@Override

@@ -2633,7 +2633,7 @@ public abstract class CPUCore
 		}
 	};
 
-	List<CPUCoreOperation> opcode_table;
+	protected List<CPUCoreOperation> opcode_table;
 	public CPUCoreOperation[] op_table = new CPUCoreOperation[256 * 5];
 
 	private CPUCoreOp GetCoreOp(String name)

@@ -7,9 +7,11 @@
 
 package jario.snes.memory;
 
+import jario.hardware.Bus8bit;
+import jario.hardware.Configurable;
 import jario.hardware.Hardware;
 
-public class UnmappedMemory extends Memory
+public class UnmappedMemory implements Hardware, Bus8bit, Configurable
 {
 	@Override
 	public void connect(int port, Hardware hw)
@@ -22,19 +24,25 @@ public class UnmappedMemory extends Memory
 	}
 
 	@Override
-	public int size()
-	{
-		return 16 * 1024 * 1024;
-	}
-
-	@Override
 	public byte read8bit(int addr)
 	{
-		return Bus.cpu.read8bit(0xFFFF);
+		return MemoryBus.cpu.read8bit(0x430c); // cpu regs.mdr
 	}
 
 	@Override
 	public void write8bit(int addr, byte data)
+	{
+	}
+
+	@Override
+	public Object readConfig(String key)
+	{
+		if (key.equals("size")) return 16 * 1024 * 1024;
+		return null;
+	}
+
+	@Override
+	public void writeConfig(String key, Object value)
 	{
 	}
 }

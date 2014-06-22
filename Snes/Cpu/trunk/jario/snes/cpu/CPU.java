@@ -16,26 +16,25 @@ import jario.hardware.Hardware;
 
 import java.util.Arrays;
 
-public class CPU extends CPUCore implements Hardware, Clockable, Bus8bit, Configurable
+public class CPU extends CPUCore implements Hardware, Clockable, Bus1bit, Bus8bit, Configurable
 {
 	public static final int NTSC = 0;
 	public static final int PAL = 1;
 	
 	protected Bus8bit bus;
-	protected Clockable smp_clk;
-	protected Clockable ppu_clk;
+	protected Clockable smp;
+	protected Clockable ppu;
 	protected Bus1bit ppu1bit;
 	protected Bus8bit smp_bus;
 	protected Bus8bit input_bus;
 	protected Bus32bit video_bus;
 
-	private long smpClocks;
+	private long clock;
 	private int ticks;
 	private int stage;
 	private int addr;
 
-	// public Collection<IProcessor> coprocessors = new
-	// Collection<IProcessor>();
+	private Clockable coprocessors;
 
 	Channel[] channel = new Channel[8];
 	DMA dma;
@@ -70,7 +69,7 @@ public class CPU extends CPUCore implements Hardware, Clockable, Bus8bit, Config
 			bus = (Bus8bit) hw;
 			break;
 		case 1:
-			smp_clk = (Clockable) hw;
+			smp = (Clockable) hw;
 			smp_bus = (Bus8bit) hw;
 			break;
 		case 2:
@@ -80,9 +79,12 @@ public class CPU extends CPUCore implements Hardware, Clockable, Bus8bit, Config
 			video_bus = (Bus32bit) hw;
 			break;
 		case 4:
-			ppu_clk = (Clockable) hw;
+			ppu = (Clockable) hw;
 			ppu1bit = (Bus1bit) hw;
 			counter.ppu1bit = ppu1bit;
+			break;
+		case 5:
+			coprocessors = (Clockable) hw;
 			break;
 		}
 	}
@@ -106,8 +108,12 @@ public class CPU extends CPUCore implements Hardware, Clockable, Bus8bit, Config
 					// Input.input.tick();
 					poll_interrupts();
 				}
-				smpClocks += 2;
-				ppu_clk.clock(2);
+				clock += 2;
+				ppu.clock(2);
+				if (coprocessors != null)
+				{
+					coprocessors.clock(2);
+				}
 
 				if (ticks == 0 && !status.dram_refreshed && counter.hcounter() >= status.dram_refresh_position)
 				{
@@ -139,10 +145,10 @@ public class CPU extends CPUCore implements Hardware, Clockable, Bus8bit, Config
 						else if (status.reset_pending)
 						{
 							status.reset_pending = false;
+							add_clocks(186);
 							regs.pc.l(bus.read8bit(0xfffc) & 0xFF);
 							regs.pc.h(bus.read8bit(0xfffd) & 0xFF);
 							System.out.println("reset pending: " + Integer.toHexString(regs.pc.w()));
-							add_clocks(186);
 						}
 					}
 					addr = (regs.pc.b() << 16) + regs.pc.w();
@@ -168,8 +174,8 @@ public class CPU extends CPUCore implements Hardware, Clockable, Bus8bit, Config
 				}
 			}
 
-			smp_clk.clock(smpClocks);
-			smpClocks = 0;
+			smp.clock(clock);
+			clock = 0;
 		}
 	}
 
@@ -177,9 +183,10 @@ public class CPU extends CPUCore implements Hardware, Clockable, Bus8bit, Config
 	public void reset()
 	{
 		stage = 0;
-		smpClocks = 0;
+		clock = 0;
 
-		// coprocessors.Clear();
+		// should this remove the coprocessors or reset them?
+		//coprocessors = null;
 		counter.reset();
 
 		// note: some registers are not fully reset by SNES
@@ -954,8 +961,12 @@ public class CPU extends CPUCore implements Hardware, Clockable, Bus8bit, Config
 				// Input.input.tick();
 				poll_interrupts();
 			}
-			smpClocks += 2;
-			ppu_clk.clock(2);
+			clock += 2;
+			ppu.clock(2);
+		}
+		if (coprocessors != null)
+		{
+			coprocessors.clock(clocks);
 		}
 		if (!status.dram_refreshed && counter.hcounter() >= status.dram_refresh_position)
 		{
@@ -975,7 +986,7 @@ public class CPU extends CPUCore implements Hardware, Clockable, Bus8bit, Config
 			// communicating
 			// synchronize_ppu();
 			// synchronize_smp();
-			// synchronize_coprocessor();
+			coprocessors.clock(0);
 
 			video_bus.write32bit(0, counter.vcounter());
 			if (counter.vcounter() == 241)
@@ -1325,5 +1336,20 @@ public class CPU extends CPUCore implements Hardware, Clockable, Bus8bit, Config
 		regs.p.d = false;
 		rd.h(op_read(status.interrupt_vector + 1));
 		regs.pc.w(rd.w());
+	}
+
+	@Override
+	public boolean read1bit(int address)
+	{
+		return false;
+	}
+
+	@Override
+	public void write1bit(int address, boolean data)
+	{
+		if (address == 0)
+		{
+			regs.irq = data;
+		}
 	}
 }

@@ -109,6 +109,8 @@ public class Console implements Hardware, Clockable, Configurable
 		cpu.connect(4, ppu);
 		((Configurable) cpu).writeConfig("cpu version", Configuration.config.cpu.version);
 		
+		ppu.connect(0, bus);
+		
 		((Configurable) ppu).writeConfig("ppu1 version", Configuration.config.ppu1.version);
 		((Configurable) ppu).writeConfig("ppu2 version", Configuration.config.ppu2.version);
 
@@ -137,6 +139,7 @@ public class Console implements Hardware, Clockable, Configurable
 			bus.connect(2, cartridge);
 			if (cartridge != null)
 			{
+				cartridge.connect(0, bus);
 				insertCartridge();
 			}
 			break;
@@ -209,6 +212,8 @@ public class Console implements Hardware, Clockable, Configurable
 
 	private void insertCartridge()
 	{
+		reset();
+		
 		region = Configuration.config.region;
 		// expansion = Configuration.config.expansion_port;
 		if (region == Region.Autodetect)
@@ -226,9 +231,8 @@ public class Console implements Hardware, Clockable, Configurable
 		// coprocessors enable
 
 		// add cpu coprocessors
+		cpu.connect(5, cartridge);
 
 		((Clockable) input).clock(1L);
-
-		reset();
 	}
 }

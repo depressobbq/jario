@@ -8,19 +8,18 @@
 package jario.snes.memory;
 
 import jario.hardware.Bus8bit;
+import jario.hardware.Configurable;
 import jario.hardware.Hardware;
 
-public class MMIOAccess extends Memory
+public class MMIOAccess implements Hardware, Bus8bit, Configurable
 {
-	private Bus8bit[] _mmio_read = new Bus8bit[0x8000];
-	private Bus8bit[] _mmio_write = new Bus8bit[0x8000];
+	private Bus8bit[] mmio = new Bus8bit[0x8000];
 
 	public MMIOAccess(UnmappedMMIO mmio_unmapped)
 	{
 		for (int i = 0; i < 0x8000; i++)
 		{
-			_mmio_read[i] = mmio_unmapped;
-			_mmio_write[i] = mmio_unmapped;
+			mmio[i] = mmio_unmapped;
 		}
 	}
 
@@ -37,24 +36,37 @@ public class MMIOAccess extends Memory
 	@Override
 	public final byte read8bit(int addr)
 	{
-		return _mmio_read[addr & 0x7fff].read8bit(addr);
+		return mmio[addr & 0x7fff].read8bit(addr);
 	}
 
 	@Override
 	public final void write8bit(int addr, byte data)
 	{
-		_mmio_write[addr & 0x7fff].write8bit(addr, data);
+		mmio[addr & 0x7fff].write8bit(addr, data);
+	}
+	
+	@Override
+	public Object readConfig(String key)
+	{
+		if (key.equals("size")) return 0;
+		// last
+		try { return handle(Integer.parseInt(key, 16)); } catch (NumberFormatException e) { return null; }
 	}
 
-	void map(int addr, Bus8bit access_read, Bus8bit access_write)
+	@Override
+	public void writeConfig(String key, Object value)
 	{
-		if (access_read != null)
-		{
-			_mmio_read[addr & 0x7fff] = access_read;
-		}
-		if (access_write != null)
-		{
-			_mmio_write[addr & 0x7fff] = access_write;
-		}
+		// last
+		try { map(Integer.parseInt(key, 16), (Bus8bit)value); } catch (NumberFormatException e) { }
+	}
+	
+	Bus8bit handle(int addr)
+	{
+		return mmio[addr & 0x7fff];
+	}
+	
+	void map(int addr, Bus8bit access)
+	{
+		mmio[addr & 0x7fff] = access;
 	}
 }

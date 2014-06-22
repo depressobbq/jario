@@ -15,26 +15,26 @@ import jario.hardware.Configurable;
 import jario.hardware.Hardware;
 import jario.snes.performance.cpu.PriorityQueue.Callback;
 
-public class CPU extends CPUCore implements Hardware, Clockable, Bus8bit, Configurable
+public class CPU extends CPUCore implements Hardware, Clockable, Bus1bit, Bus8bit, Configurable
 {
 	public static final int NTSC = 0;
 	public static final int PAL = 1;
 
-	private int region;
+	protected int region;
 	
-	static CPU cpu;
+	public static CPU cpu;
 
 	protected Bus8bit bus;
-	protected Clockable smp_clk;
-	protected Clockable ppu_clk;
+	protected Clockable smp;
+	protected Clockable ppu;
 	protected Bus1bit ppu1bit;
 	protected Bus8bit smp_bus;
 	protected Bus8bit input_port;
 	protected Bus32bit video;
 
-	private long smpClocks;
+	private long smp_clock;
 
-	// public Collection<IProcessor> coprocessors = new Collection<IProcessor>();
+	private Clockable coprocessors;
 
 	// timing
 	private static final int QueueEvent_DramRefresh = 0;
@@ -68,7 +68,7 @@ public class CPU extends CPUCore implements Hardware, Clockable, Bus8bit, Config
 			bus = (Bus8bit) hw;
 			break;
 		case 1:
-			smp_clk = (Clockable) hw;
+			smp = (Clockable) hw;
 			smp_bus = (Bus8bit) hw;
 			break;
 		case 2:
@@ -78,15 +78,18 @@ public class CPU extends CPUCore implements Hardware, Clockable, Bus8bit, Config
 			video = (Bus32bit) hw;
 			break;
 		case 4:
-			ppu_clk = (Clockable) hw;
+			ppu = (Clockable) hw;
 			ppu1bit = (Bus1bit) hw;
 			counter.ppu1bit = ppu1bit;
+			break;
+		case 5:
+			coprocessors = (Clockable) hw;
 			break;
 		}
 	}
 
 	@Override
-	public final void clock(long clocks)
+	public void clock(long clocks)
 	{
 		while (clocks-- > 0L)
 		{
@@ -109,9 +112,10 @@ public class CPU extends CPUCore implements Hardware, Clockable, Bus8bit, Config
 	@Override
 	public void reset()
 	{
-		smpClocks = 0;
+		smp_clock = 0;
 
-		// coprocessors.Clear();
+		// should this remove the coprocessors or reset them?
+		//coprocessors = null;
 		counter.reset();
 
 		regs.pc.set(0x000000);
@@ -596,22 +600,28 @@ public class CPU extends CPUCore implements Hardware, Clockable, Bus8bit, Config
 		}
 	}
 
-	private final void step(int clocks)
+	protected void step(int clocks)
 	{
-		smpClocks += clocks;
-		ppu_clk.clock(clocks);
-		// for (int i = 0; i < coprocessors.Count; i++)
-		// {
-		// IProcessor chip = coprocessors[i];
-		// chip.Processor.clock -= (long)(clocks *
-		// (long)chip.Processor.frequency);
-		// }
+		smp_clock += clocks;
+		ppu.clock(clocks);
+		if (coprocessors != null)
+		{
+			coprocessors.clock(clocks);
+		}
 	}
 
 	private void synchronize_smp()
 	{
-		smp_clk.clock(smpClocks);
-		smpClocks = 0;
+		smp.clock(smp_clock);
+		smp_clock = 0;
+	}
+	
+	private void synchronize_coprocessor()
+	{
+		if (coprocessors != null)
+		{
+		    coprocessors.clock(0);
+		  }
 	}
 
 	// private byte port_read(int port)
@@ -624,7 +634,7 @@ public class CPU extends CPUCore implements Hardware, Clockable, Bus8bit, Config
 		port_data[port & 3] = data & 0xFF;
 	}
 
-	private void power()
+	protected void power()
 	{
 		regs.a.set(0x0000);
 		regs.x.set(0x0000);
@@ -747,7 +757,7 @@ public class CPU extends CPUCore implements Hardware, Clockable, Bus8bit, Config
 		{
 			synchronize_smp();
 			// synchronize_ppu();
-			// synchronize_coprocessor();
+			synchronize_coprocessor();
 			video.write32bit(0, counter.vcounter());
 			if (counter.vcounter() == 241)
 			{
@@ -834,5 +844,17 @@ public class CPU extends CPUCore implements Hardware, Clockable, Bus8bit, Config
 		if (((addr + 0x6000) & 0x4000) != 0) { return 8; }
 		if (((addr - 0x4000) & 0x7e00) != 0) { return 6; }
 		return 12;
+	}
+
+	@Override
+	public boolean read1bit(int address)
+	{
+		return false;
+	}
+
+	@Override
+	public void write1bit(int address, boolean data)
+	{
+		if (address == 0) regs.irq = data;
 	}
 }

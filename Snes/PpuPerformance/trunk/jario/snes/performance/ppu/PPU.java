@@ -26,6 +26,8 @@ public class PPU implements Hardware, Clockable, Bus1bit, Bus8bit, BusDMA, Confi
 
 	private long clock;
 	private int region;
+	
+	private Bus8bit bus;
 
 	int[] vram;
 	int[] oam;
@@ -34,6 +36,10 @@ public class PPU implements Hardware, Clockable, Bus1bit, Bus8bit, BusDMA, Confi
 	@Override
 	public void connect(int port, Hardware hw)
 	{
+		switch (port)
+		{
+		case 0: bus = (Bus8bit) hw; break;
+		}
 	}
 
 	private void step(int clocks)
@@ -502,6 +508,13 @@ public class PPU implements Hardware, Clockable, Bus1bit, Bus8bit, BusDMA, Confi
 
 		switch (addr & 0xffff)
 		{
+		
+		case 0x2104: case 0x2105: case 0x2106: case 0x2108: case 0x2109: case 0x210a:
+	    case 0x2114: case 0x2115: case 0x2116: case 0x2118: case 0x2119: case 0x211a:
+	    case 0x2124: case 0x2125: case 0x2126: case 0x2128: case 0x2129: case 0x212a: {
+	      return (byte) regs.ppu1_mdr;
+	    }
+		
 		case 0x2134:
 		{ // MPYL
 			int result = (int) ((short) regs.m7a * (byte) (regs.m7b >> 8));
@@ -628,7 +641,8 @@ public class PPU implements Hardware, Clockable, Bus1bit, Bus8bit, BusDMA, Confi
 		}
 		}
 
-		return (byte) regs.ppu1_mdr; // CPU.cpu.regs.mdr;
+		//return (byte) regs.ppu1_mdr; // CPU.cpu.regs.mdr;
+		return (byte) bus.read8bit(0x430c);
 	}
 
 	@Override
