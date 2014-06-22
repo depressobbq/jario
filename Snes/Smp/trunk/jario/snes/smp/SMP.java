@@ -14,7 +14,9 @@ import jario.hardware.Hardware;
 
 public class SMP extends SMPCore implements Hardware, Clockable, Bus8bit, Configurable
 {
-	private static final int FREQUENCY = 24607104; // 32040.5 * 768
+	private static final int SMP_FREQUENCY_NTSC_PAL = 24607104; // 32040.5 * 768
+	private static final int CPU_FREQUENCY_NTSC = 21477272; // 315 / 88 * 6000000
+	private static final int CPU_FREQUENCY_PAL = 21281370;
 
 	private long clock;
 	private int frequency_multiplier;
@@ -63,7 +65,7 @@ public class SMP extends SMPCore implements Hardware, Clockable, Bus8bit, Config
 	@Override
 	public void clock(long clocks)
 	{
-		clock -= clocks * FREQUENCY;
+		clock -= clocks * SMP_FREQUENCY_NTSC_PAL;
 		while (clock < 0)
 		{
 			opcode_table[op_readpc()].Invoke();
@@ -498,6 +500,6 @@ public class SMP extends SMPCore implements Hardware, Clockable, Bus8bit, Config
 	@Override
 	public void writeConfig(String key, Object value)
 	{
-		if (key.equals("region")) frequency_multiplier = value.toString().equals("ntsc") ? 21477272 /* 315 / 88 * 6000000 */: 21281370;
+		if (key.equals("region")) frequency_multiplier = value.toString().equals("ntsc") ? CPU_FREQUENCY_NTSC : CPU_FREQUENCY_PAL;
 	}
 }

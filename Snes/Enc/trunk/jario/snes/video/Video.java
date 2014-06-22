@@ -132,7 +132,8 @@ public class Video implements Hardware, Clockable, Bus32bit, Configurable
 			height <<= 1;
 		}
 
-		executor.execute(new AudioVideoThread(width, height));
+		//executor.execute(new AudioVideoThread(width, height));
+		output.writeDMA(0, data_output, 1024 * 2, ((width & 0xFFFF) << 16) | (height & 0xFFFF));
 		audio.read32bit(0); // play audio for this frame
 
 		frame_hires = false;

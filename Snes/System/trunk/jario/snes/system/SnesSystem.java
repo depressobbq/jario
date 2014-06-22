@@ -43,7 +43,8 @@ public class SnesSystem implements Hardware
 	private JFrame window;
 	private Hardware video;
 	private Hardware audio;
-	private Hardware controller;
+	private Hardware controller1;
+	private Hardware controller2;
 	private Map<String, Hardware> controllers = new HashMap<String, Hardware>();
 	private Hardware console;
 	private Hardware cartridge;
@@ -54,7 +55,8 @@ public class SnesSystem implements Hardware
 		public Jario64MenuBar()
 		{
 			add(makeFileMenu());
-			add(makeControllerMenu());
+			add(makeController1Menu());
+			add(makeController2Menu());
 			add(makeSettingsMenu());
 		}
 
@@ -77,7 +79,7 @@ public class SnesSystem implements Hardware
 						@Override
 						public boolean accept(File f)
 						{
-							return f.getName().endsWith(".smc") || f.getName().endsWith(".sfc");
+							return f.isDirectory() || f.getName().endsWith(".smc") || f.getName().endsWith(".sfc");
 						}
 
 						@Override
@@ -154,17 +156,33 @@ public class SnesSystem implements Hardware
 			return settingsMenu;
 		}
 		
-		private JMenu makeControllerMenu()
+		private JMenu makeController1Menu()
 		{
 			JMenu controllerMenu = new JMenu();
-			controllerMenu.setText("Controller");
+			controllerMenu.setText("Controller 1");
 			
 			ButtonGroup group = new ButtonGroup();
+			
+			JRadioButtonMenuItem nocontrollerOption = new JRadioButtonMenuItem("NONE");
+			nocontrollerOption.addActionListener(new ActionListener()
+			{
+				public void actionPerformed(ActionEvent evt)
+				{
+					JRadioButtonMenuItem i = (JRadioButtonMenuItem) evt.getSource();
+					if (i.isSelected())
+					{
+						controller1 = null;
+						console.connect(0, controller1); // controller1
+					}
+				}
+			});
+			group.add(nocontrollerOption);
+			controllerMenu.add(nocontrollerOption);
 			
 			for (Hardware hardware : controllers.values())
 			{
 				JRadioButtonMenuItem controllerOption = new JRadioButtonMenuItem(hardware.getClass().getSimpleName());
-				if (controller != null && hardware.getClass().getName().equals(controller.getClass().getName()))
+				if (controller1 != null && hardware.getClass().getName().equals(controller1.getClass().getName()))
 				{
 					controllerOption.setSelected(true);
 				}
@@ -175,8 +193,56 @@ public class SnesSystem implements Hardware
 						JRadioButtonMenuItem i = (JRadioButtonMenuItem) evt.getSource();
 						if (i.isSelected())
 						{
-							controller = controllers.get(i.getText());
-							console.connect(0, controller); // controller1
+							controller1 = controllers.get(i.getText());
+							console.connect(0, controller1); // controller1
+							// should set controller 2 to none?
+						}
+					}
+				});
+				group.add(controllerOption);
+				controllerMenu.add(controllerOption);
+			}
+
+			return controllerMenu;
+		}
+		
+		private JMenu makeController2Menu()
+		{
+			JMenu controllerMenu = new JMenu();
+			controllerMenu.setText("Controller 2");
+			
+			ButtonGroup group = new ButtonGroup();
+			
+			JRadioButtonMenuItem nocontrollerOption = new JRadioButtonMenuItem("NONE");
+			nocontrollerOption.setSelected(true);
+			nocontrollerOption.addActionListener(new ActionListener()
+			{
+				public void actionPerformed(ActionEvent evt)
+				{
+					JRadioButtonMenuItem i = (JRadioButtonMenuItem) evt.getSource();
+					if (i.isSelected())
+					{
+						controller2 = null;
+						console.connect(1, controller2); // controller2
+					}
+				}
+			});
+			group.add(nocontrollerOption);
+			controllerMenu.add(nocontrollerOption);
+			
+			for (Hardware hardware : controllers.values())
+			{
+				JRadioButtonMenuItem controllerOption = new JRadioButtonMenuItem(hardware.getClass().getSimpleName());
+				controllerOption.addActionListener(new ActionListener()
+				{
+					public void actionPerformed(ActionEvent evt)
+					{
+						JRadioButtonMenuItem i = (JRadioButtonMenuItem) evt.getSource();
+						if (i.isSelected())
+						{
+							controller2 = controllers.get(i.getText());
+							console.connect(1, controller2); // controller2
+							System.out.println("connected controller 2: "+i.getText());
 						}
 					}
 				});
@@ -228,13 +294,13 @@ public class SnesSystem implements Hardware
 				controllers.put(hardware.getClass().getSimpleName(), hardware);
 				if (prop.getProperty("CONTROLLER", "CONTROLLER").equals(hardware.getClass().getName()))
 				{
-					controller = hardware;
+					controller1 = hardware;
 				}
 			}
 
 			video = (Hardware) Class.forName(prop.getProperty("VIDEO_PLAYER", "VIDEO_PLAYER"), true, loader).newInstance();
 			audio = (Hardware) Class.forName(prop.getProperty("AUDIO_PLAYER", "AUDIO_PLAYER"), true, loader).newInstance();
-			if (controller == null) controller = (Hardware) Class.forName(prop.getProperty("CONTROLLER", "CONTROLLER"), true, loader).newInstance();
+			if (controller1 == null) controller1 = (Hardware) Class.forName(prop.getProperty("CONTROLLER", "CONTROLLER"), true, loader).newInstance();
 			console = (Hardware) Class.forName(prop.getProperty("CONSOLE", "CONSOLE"), true, loader).newInstance();
 			cartridge = (Hardware) Class.forName(prop.getProperty("CARTRIDGE", "CARTRIDGE"), true, loader).newInstance();
 		}
@@ -272,8 +338,8 @@ public class SnesSystem implements Hardware
 
 		console.connect(3, video);
 		console.connect(4, audio);
-		console.connect(0, controller); // controller1
-		console.connect(1, null); // controller2
+		console.connect(0, controller1);
+		console.connect(1, controller2);
 	}
 
 	@Override

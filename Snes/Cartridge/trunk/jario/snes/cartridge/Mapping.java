@@ -12,7 +12,7 @@ import jario.snes.cartridge.Cartridge.MapMode;
 
 public class Mapping
 {
-	public MappedRAM memory;
+	public Bus8bit memory;
 	public Bus8bit mmio;
 	public MapMode mode;
 	public int banklo;
@@ -29,19 +29,19 @@ public class Mapping
 		mode = MapMode.Direct;
 		banklo = bankhi = addrlo = addrhi = offset = size = 0;
 	}
-
-	public Mapping(MappedRAM memory_)
+	
+	public Mapping(Bus8bit bus, boolean is_memory)
 	{
-		memory = memory_;
-		mmio = null;
-		mode = MapMode.Direct;
-		banklo = bankhi = addrlo = addrhi = offset = size = 0;
-	}
-
-	public Mapping(Bus8bit mmio_)
-	{
-		memory = null;
-		mmio = mmio_;
+		if (is_memory)
+		{
+			memory = bus;
+			mmio = null;
+		}
+		else
+		{
+			memory = null;
+			mmio = bus;
+		}
 		mode = MapMode.Direct;
 		banklo = bankhi = addrlo = addrhi = offset = size = 0;
 	}

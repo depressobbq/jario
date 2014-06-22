@@ -8,9 +8,10 @@
 package jario.snes.cartridge;
 
 import jario.hardware.Bus8bit;
+import jario.hardware.Configurable;
 import jario.hardware.Hardware;
 
-public class MappedRAM implements Hardware, Bus8bit
+public class MappedRAM implements Hardware, Bus8bit, Configurable
 {
 	private byte[] data_;
 	private int size_;
@@ -52,6 +53,19 @@ public class MappedRAM implements Hardware, Bus8bit
 			data_[addr] = n;
 		}
 	}
+	
+	@Override
+	public Object readConfig(String key)
+	{
+		if (key.equals("size")) return size_;
+		return null;
+	}
+
+	@Override
+	public void writeConfig(String key, Object value)
+	{
+		
+	}
 
 	void map(byte[] source, int length)
 	{
@@ -78,10 +92,5 @@ public class MappedRAM implements Hardware, Bus8bit
 	byte[] data()
 	{
 		return data_;
-	}
-
-	int size()
-	{
-		return size_;
 	}
 }

@@ -14,7 +14,7 @@ public class UnmappedMMIO implements Bus8bit
 	@Override
 	public byte read8bit(int addr)
 	{
-		return Bus.cpu.read8bit(0xFFFF);
+		return MemoryBus.cpu.read8bit(0x430c); // cpu regs.mdr
 	}
 
 	@Override

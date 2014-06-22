@@ -14,23 +14,23 @@ import jario.hardware.Hardware;
 
 public class Input implements Hardware, Clockable, Bus8bit
 {
-	private Bus16bit input0;
-	// private Bus16bit input1;
+	private class Stub implements Bus16bit
+	{
+		@Override
+		public short read16bit(int address) { return 0; }
+
+		@Override
+		public void write16bit(int address, short data) { }
+	}
+	
+	private Stub stub = new Stub();
 
 	@Override
 	public void connect(int port, Hardware hw)
 	{
-		switch (port)
-		{
-		case 0:
-			input0 = (Bus16bit) hw;
-			port_set_device(0, Device.Joypad);
-			break;
-		case 1:
-			// input1 = (Bus16bit)hw;
-			port_set_device(1, Device.Joypad);
-			break;
-		}
+		if (port >= 2) return;
+		this.port[port].bus = hw != null ? (Bus16bit) hw : stub;
+		port_set_device(port, Device.Joypad);
 	}
 
 	@Override
@@ -79,11 +79,11 @@ public class Input implements Hardware, Clockable, Bus8bit
 			if (!joypad_strobe_latch)
 			{
 				if (p.counter0 >= 16) { return 1; }
-				return (byte) (((input0.read16bit(portnumber * 4) & (1 << p.counter0++)) != 0) ? 1 : 0);
+				return (byte) (((p.bus.read16bit(portnumber * 4) & (1 << p.counter0++)) != 0) ? 1 : 0);
 			}
 			else
 			{
-				return (byte) (((input0.read16bit(portnumber * 4) & (1 << 0)) != 0) ? 1 : 0);
+				return (byte) (((p.bus.read16bit(portnumber * 4) & (1 << 0)) != 0) ? 1 : 0);
 			}
 		}
 		case Multitap:

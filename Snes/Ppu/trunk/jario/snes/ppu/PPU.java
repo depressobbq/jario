@@ -55,10 +55,16 @@ public class PPU implements Hardware, Clockable, Bus1bit, Bus8bit, BusDMA, Confi
 	private int pixel = 256;
 	private boolean accuracy;
 	private boolean requestAccuracy;
+	
+	private Bus8bit bus;
 
 	@Override
 	public void connect(int port, Hardware hw)
 	{
+		switch (port)
+		{
+		case 0: bus = (Bus8bit) hw; break;
+		}
 	}
 
 	final void latch_counters()
@@ -1012,7 +1018,8 @@ public class PPU implements Hardware, Clockable, Bus1bit, Bus8bit, BusDMA, Confi
 		{
 			latch_counters();
 		}
-		return regs.ppu1_mdr; // CPU.cpu.regs.mdr & 0xFF;
+		//return regs.ppu1_mdr; // CPU.cpu.regs.mdr & 0xFF;
+		return bus.read8bit(0x430c) & 0xFF;
 	} // SLHV
 
 	private int mmio_r2138()
